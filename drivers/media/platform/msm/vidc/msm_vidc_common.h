@@ -52,6 +52,7 @@ struct hal_buffer_requirements *get_buff_req_buffer(
 
 int msm_comm_check_scaling_supported(struct msm_vidc_inst *inst);
 int msm_comm_recover_from_session_error(struct msm_vidc_inst *inst);
+void msm_comm_session_clean(struct msm_vidc_inst *inst);
 enum multi_stream msm_comm_get_stream_output_mode(struct msm_vidc_inst *inst);
 enum hal_buffer msm_comm_get_hal_output_buffer(struct msm_vidc_inst *inst);
 struct msm_smem *msm_comm_smem_alloc(struct msm_vidc_inst *inst,
