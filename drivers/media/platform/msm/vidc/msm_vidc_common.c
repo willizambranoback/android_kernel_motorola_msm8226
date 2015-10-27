@@ -972,8 +972,12 @@ static void handle_sys_error(enum command_response cmd, void *data)
 				V4L2_EVENT_MSM_VIDC_SYS_ERROR);
 	}
 
-        if (inst->core)
-            hdev = inst->core->device;
+	hdev = core->device;
+	if (!hdev) {
+		dprintk(VIDC_ERR, "hdev in core is NULL\n");
+		mutex_unlock(&core->lock);
+		return;
+	}
 
 	mutex_unlock(&core->lock);
 
