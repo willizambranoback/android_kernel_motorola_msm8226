@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1364,6 +1364,13 @@ struct hdd_context_s
     struct notifier_block ipv4_notifier;
     //Lock to avoid race condition during wmm operations
     struct mutex   wmmLock;
+    v_BOOL_t mgmt_frame_logging;
+    v_BOOL_t isSetBandByNL;
+#ifdef WLAN_FEATURE_LINK_LAYER_STATS
+    struct hdd_ll_stats_context ll_stats_context;
+#endif /* End of WLAN_FEATURE_LINK_LAYER_STATS */
+    unsigned long  last_suspend_success;
+    v_U32_t  continuous_suspend_fail_cnt;
 };
 
 

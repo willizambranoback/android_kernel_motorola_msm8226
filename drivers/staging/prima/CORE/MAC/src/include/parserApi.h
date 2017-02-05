@@ -723,6 +723,11 @@ PopulateDot11fSuppRates(tpAniSirGlobal      pMac,
                         tANI_U8                  nChannelNum,
                         tDot11fIESuppRates *pDot11f,tpPESession);
 
+tSirRetStatus
+PopulateDot11fRatesTdls(tpAniSirGlobal p_mac,
+                           tDot11fIESuppRates *p_supp_rates,
+                           tDot11fIEExtSuppRates *p_ext_supp_rates,
+                           tANI_U8 curr_oper_channel);
 
 tSirRetStatus PopulateDot11fTPCReport(tpAniSirGlobal      pMac,
                                       tDot11fIETPCReport *pDot11f,

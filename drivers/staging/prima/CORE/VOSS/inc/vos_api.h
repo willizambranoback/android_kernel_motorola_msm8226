@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -77,6 +77,82 @@
 #include <vos_threads.h>
 #include <vos_timer.h>
 #include <vos_pack_align.h>
+
+/**
+ * enum log_event_type - Type of event initiating bug report
+ * @WLAN_LOG_TYPE_NON_FATAL: Non fatal event
+ * @WLAN_LOG_TYPE_FATAL: Fatal event
+ *
+ * Enum indicating the type of event that is initiating the bug report
+ */
+enum log_event_type {
+	WLAN_LOG_TYPE_NON_FATAL,
+	WLAN_LOG_TYPE_FATAL,
+};
+
+/* 15 Min */
+#define WLAN_POWER_COLLAPSE_FAIL_THRESHOLD  (1000 * 60 * 15)
+
+/**
+ * enum log_event_indicator - Module triggering bug report
+ * @WLAN_LOG_INDICATOR_UNUSED: Unused
+ * @WLAN_LOG_INDICATOR_FRAMEWORK: Framework triggers bug report
+ * @WLAN_LOG_INDICATOR_HOST_DRIVER: Host driver triggers bug report
+ * @WLAN_LOG_INDICATOR_FIRMWARE: FW initiates bug report
+ *
+ * Enum indicating the module that triggered the bug report
+ */
+enum log_event_indicator {
+	WLAN_LOG_INDICATOR_UNUSED,
+	WLAN_LOG_INDICATOR_FRAMEWORK,
+	WLAN_LOG_INDICATOR_HOST_DRIVER,
+	WLAN_LOG_INDICATOR_FIRMWARE,
+	WLAN_LOG_INDICATOR_IOCTL
+};
+
+/**
+ * enum log_event_host_reason_code - Reason code for bug report
+ * @WLAN_LOG_REASON_CODE_UNUSED: Unused
+ * @WLAN_LOG_REASON_COMMAND_UNSUCCESSFUL: Command response status from FW
+ * is error
+ * @WLAN_LOG_REASON_ROAM_FAIL: Driver initiated roam has failed
+ * @WLAN_LOG_REASON_THREAD_STUCK: Monitor Health of host threads and report
+ * fatal event if some thread is stuck
+ * @WLAN_LOG_REASON_DATA_STALL: Unable to send/receive data due to low resource
+ * scenario for a prolonged period
+ * @WLAN_LOG_REASON_SME_COMMAND_STUCK: SME command is stuck in SME active queue
+ * @WLAN_LOG_REASON_ZERO_SCAN_RESULTS: Full scan resulted in zero scan results
+ * @WLAN_LOG_REASON_QUEUE_FULL: Defer queue becomes full for a prolonged period
+ * @WLAN_LOG_REASON_POWER_COLLAPSE_FAIL: Unable to allow apps power collapse
+ * for a prolonged period
+ * @WLAN_LOG_REASON_SSR_FAIL: Unable to gracefully complete SSR
+ * @WLAN_LOG_REASON_DISCONNECT_FAIL: Disconnect from Supplicant is not
+ * successful
+ * @WLAN_LOG_REASON_CLEAN_UP_FAIL: Clean up of  TDLS or Pre-Auth Sessions
+ * not successful
+ * @WLAN_LOG_REASON_MALLOC_FAIL: Memory allocation Fails
+ * @WLAN_LOG_REASON_VOS_MSG_UNDER_RUN: VOS Core runs out of message wrapper
+ * @WLAN_LOG_REASON_MSG_POST_FAIL: Unable to post msg
+ *
+ * This enum contains the different reason codes for bug report
+ */
+enum log_event_host_reason_code {
+	WLAN_LOG_REASON_CODE_UNUSED,
+	WLAN_LOG_REASON_COMMAND_UNSUCCESSFUL,
+	WLAN_LOG_REASON_ROAM_FAIL,
+	WLAN_LOG_REASON_THREAD_STUCK,
+	WLAN_LOG_REASON_DATA_STALL,
+	WLAN_LOG_REASON_SME_COMMAND_STUCK,
+	WLAN_LOG_REASON_ZERO_SCAN_RESULTS,
+	WLAN_LOG_REASON_QUEUE_FULL,
+	WLAN_LOG_REASON_POWER_COLLAPSE_FAIL,
+	WLAN_LOG_REASON_SSR_FAIL,
+	WLAN_LOG_REASON_DISCONNECT_FAIL,
+	WLAN_LOG_REASON_CLEAN_UP_FAIL,
+	WLAN_LOG_REASON_MALLOC_FAIL,
+	WLAN_LOG_REASON_VOS_MSG_UNDER_RUN,
+	WLAN_LOG_REASON_MSG_POST_FAIL,
+};
 
 /*------------------------------------------------------------------------- 
   Function declarations and documenation

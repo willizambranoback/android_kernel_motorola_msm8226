@@ -2191,16 +2191,21 @@ static int __iw_get_genie(struct net_device *dev,
                                    pAdapter->sessionId,
                                    &length,
                                    genIeBytes);
-    length = VOS_MIN((u_int16_t) length, DOT11F_IE_RSN_MAX_LEN);
-    if (wrqu->data.length < length)
-    {
-        hddLog(LOG1, "%s: failed to copy data to user buffer", __func__);
+    if (eHAL_STATUS_SUCCESS != status) {
+        hddLog(LOGE, FL("failed to get WPA-RSN IE data"));
         return -EFAULT;
     }
-    vos_mem_copy( extra, (v_VOID_t*)genIeBytes, length);
-    wrqu->data.length = length;
 
-    hddLog(LOG1,"%s: RSN IE of %d bytes returned", __func__, wrqu->data.length );
+    wrqu->data.length = length;
+    if (length > DOT11F_IE_RSN_MAX_LEN) {
+        hddLog(LOGE,
+               FL("invalid buffer length length:%d"), length);
+        return -E2BIG;
+    }
+
+    vos_mem_copy( extra, (v_VOID_t*)genIeBytes, length);
+
+    hddLog(LOG1, FL("RSN IE of %d bytes returned"), wrqu->data.length );
 
     EXIT();
 
@@ -3360,6 +3365,361 @@ void* wlan_hdd_change_country_code_callback(void *pAdapter)
     return NULL;
 }
 
+static int __iw_set_priv(struct net_device *dev,
+                       struct iw_request_info *info,
+                       union iwreq_data *wrqu, char *extra)
+{
+    hdd_adapter_t *pAdapter;
+    char *cmd = NULL;
+    int cmd_len = wrqu->data.length;
+    int rc = 0, ret = 0;
+    VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+
+    hdd_context_t *pHddCtx;
+
+    ENTER();
+
+    pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    if (NULL == pAdapter)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "mem_alloc_copy_from_user_helper fail");
+        return -EINVAL;
+    }
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    rc = wlan_hdd_validate_context(pHddCtx);
+    if (0 != rc)
+    {
+        return rc;
+    }
+
+    cmd = mem_alloc_copy_from_user_helper(wrqu->data.pointer,
+                                          wrqu->data.length);
+    if (NULL == cmd)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "mem_alloc_copy_from_user_helper fail");
+        return -ENOMEM;
+    }
+
+    if (ioctl_debug)
+    {
+       pr_info("%s: req [%s] len [%d]\n", __func__, cmd, cmd_len);
+    }
+
+    hddLog(VOS_TRACE_LEVEL_INFO_MED,
+           "%s: ***Received %s cmd from Wi-Fi GUI***", __func__, cmd);
+
+    if (strncmp(cmd, "CSCAN", 5) == 0 )
+    {
+       if (eHAL_STATUS_SUCCESS != iw_set_cscan(dev, info, wrqu, cmd)) {
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                     "%s: Error in iw_set_scan!", __func__);
+          rc = -EINVAL;
+       }
+    }
+    else if( strcasecmp(cmd, "start") == 0 ) {
+
+        hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Start command");
+        /*Exit from Deep sleep or standby if we get the driver START cmd from android GUI*/
+
+        vos_status = wlan_hdd_exit_lowpower(pHddCtx, pAdapter);
+        if (vos_status == VOS_STATUS_SUCCESS)
+        {
+            union iwreq_data wrqu;
+            char buf[10];
+
+            memset(&wrqu, 0, sizeof(wrqu));
+            wrqu.data.length = strlcpy(buf, "START", sizeof(buf));
+            wireless_send_event(pAdapter->dev, IWEVCUSTOM, &wrqu, buf);
+        }
+        else
+        {
+            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: START CMD Status %d", __func__, vos_status);
+            rc = -EIO;
+        }
+        goto done;
+    }
+    else if( strcasecmp(cmd, "stop") == 0 )
+    {
+        union iwreq_data wrqu;
+        char buf[10];
+
+        hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Stop command");
+
+        wlan_hdd_enter_lowpower(pHddCtx);
+        memset(&wrqu, 0, sizeof(wrqu));
+        wrqu.data.length = strlcpy(buf, "STOP", sizeof(buf));
+        wireless_send_event(pAdapter->dev, IWEVCUSTOM, &wrqu, buf);
+        goto done;
+    }
+    else if (strcasecmp(cmd, "macaddr") == 0)
+    {
+        ret = snprintf(cmd, cmd_len, "Macaddr = " MAC_ADDRESS_STR,
+                       MAC_ADDR_ARRAY(pAdapter->macAddressCurrent.bytes));
+    }
+    else if (strcasecmp(cmd, "scan-active") == 0)
+    {
+        hddLog(LOG1,
+                FL("making default scan to active"));
+        pHddCtx->scan_info.scan_mode = eSIR_ACTIVE_SCAN;
+        ret = snprintf(cmd, cmd_len, "OK");
+    }
+    else if (strcasecmp(cmd, "scan-passive") == 0)
+    {
+        hddLog(LOG1,
+               FL("making default scan to passive"));
+        pHddCtx->scan_info.scan_mode = eSIR_PASSIVE_SCAN;
+        ret = snprintf(cmd, cmd_len, "OK");
+    }
+    else if( strcasecmp(cmd, "scan-mode") == 0 )
+    {
+        ret = snprintf(cmd, cmd_len, "ScanMode = %u", pHddCtx->scan_info.scan_mode);
+    }
+    else if( strcasecmp(cmd, "linkspeed") == 0 )
+    {
+        ret = iw_get_linkspeed(dev, info, wrqu, cmd);
+    }
+    else if( strncasecmp(cmd, "rssi", 4) == 0 )
+    {
+        ret = iw_get_rssi(dev, info, wrqu, cmd);
+    }
+    else if( strncasecmp(cmd, "powermode", 9) == 0 ) {
+        int mode;
+        char *ptr;
+
+        if (9 < cmd_len)
+        {
+            ptr = (char*)(cmd + 9);
+
+        }else{
+              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                        "CMD LENGTH %d is not correct",cmd_len);
+              kfree(cmd);
+              return -EINVAL;
+        }
+
+        if (1 != sscanf(ptr,"%d",&mode))
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "powermode input %s is not correct",ptr);
+            kfree(cmd);
+            return -EIO;
+        }
+
+        wlan_hdd_enter_bmps(pAdapter, mode);
+        /*TODO:Set the power mode*/
+    }
+    else if (strncasecmp(cmd, "getpower", 8) == 0 ) {
+        v_U32_t pmc_state;
+        v_U16_t value;
+
+        pmc_state = pmcGetPmcState(WLAN_HDD_GET_HAL_CTX(pAdapter));
+        if(pmc_state == BMPS) {
+           value = DRIVER_POWER_MODE_AUTO;
+        }
+        else {
+           value = DRIVER_POWER_MODE_ACTIVE;
+        }
+        ret = snprintf(cmd, cmd_len, "powermode = %u", value);
+    }
+    else if( strncasecmp(cmd, "btcoexmode", 10) == 0 ) {
+        hddLog( VOS_TRACE_LEVEL_INFO, "btcoexmode");
+        /*TODO: set the btcoexmode*/
+    }
+    else if( strcasecmp(cmd, "btcoexstat") == 0 ) {
+
+        hddLog(VOS_TRACE_LEVEL_INFO, "BtCoex Status");
+        /*TODO: Return the btcoex status*/
+    }
+    else if( strcasecmp(cmd, "rxfilter-start") == 0 ) {
+
+        hddLog(VOS_TRACE_LEVEL_INFO, "Rx Data Filter Start command");
+
+        /*TODO: Enable Rx data Filter*/
+    }
+    else if( strcasecmp(cmd, "rxfilter-stop") == 0 ) {
+
+        hddLog(VOS_TRACE_LEVEL_INFO, "Rx Data Filter Stop command");
+
+        /*TODO: Disable Rx data Filter*/
+    }
+    else if( strcasecmp(cmd, "rxfilter-statistics") == 0 ) {
+
+        hddLog( VOS_TRACE_LEVEL_INFO, "Rx Data Filter Statistics command");
+        /*TODO: rxfilter-statistics*/
+    }
+    else if( strncasecmp(cmd, "rxfilter-add", 12) == 0 ) {
+
+        hddLog( VOS_TRACE_LEVEL_INFO, "rxfilter-add");
+        /*TODO: rxfilter-add*/
+    }
+    else if( strncasecmp(cmd, "rxfilter-remove",15) == 0 ) {
+
+        hddLog( VOS_TRACE_LEVEL_INFO, "rxfilter-remove");
+        /*TODO: rxfilter-remove*/
+    }
+#ifdef FEATURE_WLAN_SCAN_PNO
+    else if( strncasecmp(cmd, "pnosetup", 8) == 0 ) {
+        hddLog( VOS_TRACE_LEVEL_INFO, "pnosetup");
+        /*TODO: support pnosetup*/
+    }
+    else if( strncasecmp(cmd, "pnoforce", 8) == 0 ) {
+        hddLog( VOS_TRACE_LEVEL_INFO, "pnoforce");
+        /*TODO: support pnoforce*/
+    }
+    else if( strncasecmp(cmd, "pno",3) == 0 ) {
+
+        hddLog( VOS_TRACE_LEVEL_INFO, "pno");
+        vos_status = iw_set_pno(dev, info, wrqu, cmd, 3);
+        kfree(cmd);
+        return (vos_status == VOS_STATUS_SUCCESS) ? 0 : -EINVAL;
+    }
+    else if( strncasecmp(cmd, "rssifilter",10) == 0 ) {
+        hddLog( VOS_TRACE_LEVEL_INFO, "rssifilter");
+        vos_status = iw_set_rssi_filter(dev, info, wrqu, cmd, 10);
+        kfree(cmd);
+        return (vos_status == VOS_STATUS_SUCCESS) ? 0 : -EINVAL;
+    }
+#endif /*FEATURE_WLAN_SCAN_PNO*/
+    else if( strncasecmp(cmd, "powerparams",11) == 0 ) {
+      hddLog( VOS_TRACE_LEVEL_INFO, "powerparams");
+      vos_status = iw_set_power_params(dev, info, wrqu, cmd, 11);
+      kfree(cmd);
+      return (vos_status == VOS_STATUS_SUCCESS) ? 0 : -EINVAL;
+    }
+    else if( 0 == strncasecmp(cmd, "CONFIG-TX-TRACKING", 18) ) {
+        tSirTxPerTrackingParam tTxPerTrackingParam;
+        char *ptr;
+
+        if (18 < cmd_len)
+        {
+           ptr = (char*)(cmd + 18);
+        }else{
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                         "CMD LENGTH %d is not correct",cmd_len);
+               kfree(cmd);
+               return -EINVAL;
+        }
+
+        if (4 != sscanf(ptr,"%hhu %hhu %hhu %u",
+                        &(tTxPerTrackingParam.ucTxPerTrackingEnable),
+                        &(tTxPerTrackingParam.ucTxPerTrackingPeriod),
+                        &(tTxPerTrackingParam.ucTxPerTrackingRatio),
+                        &(tTxPerTrackingParam.uTxPerTrackingWatermark)))
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                      "CONFIG-TX-TRACKING %s input is not correct",ptr);
+                      kfree(cmd);
+                      return -EIO;
+        }
+
+        // parameters checking
+        // period has to be larger than 0
+        if (0 == tTxPerTrackingParam.ucTxPerTrackingPeriod)
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "Period input is not correct");
+            kfree(cmd);
+            return -EIO;
+        }
+
+        // use default value 5 is the input is not reasonable. in unit of 10%
+        if ((tTxPerTrackingParam.ucTxPerTrackingRatio > TX_PER_TRACKING_MAX_RATIO) || (0 == tTxPerTrackingParam.ucTxPerTrackingRatio))
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "Ratio input is not good. use default 5");
+            tTxPerTrackingParam.ucTxPerTrackingRatio = TX_PER_TRACKING_DEFAULT_RATIO;
+        }
+
+        // default is 5
+        if (0 == tTxPerTrackingParam.uTxPerTrackingWatermark)
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "Tx Packet number input is not good. use default 5");
+            tTxPerTrackingParam.uTxPerTrackingWatermark = TX_PER_TRACKING_DEFAULT_WATERMARK;
+        }
+
+        if (eHAL_STATUS_SUCCESS !=
+            sme_SetTxPerTracking(pHddCtx->hHal,
+                                 hdd_tx_per_hit_cb,
+                                 (void*)pAdapter, &tTxPerTrackingParam)) {
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "Set Tx PER Tracking Failed!");
+            rc = -EIO;
+        }
+    }
+    else {
+        hddLog( VOS_TRACE_LEVEL_WARN, "%s: Unsupported GUI command %s",
+                __func__, cmd);
+    }
+done:
+    /* many of the commands write information back into the command
+       string using snprintf().  check the return value here in one
+       place */
+    if ((ret < 0) || (ret >= cmd_len))
+    {
+       /* there was an encoding error or overflow */
+       rc = -EINVAL;
+    }
+    else if (ret > 0)
+    {
+       if (copy_to_user(wrqu->data.pointer, cmd, ret))
+       {
+          hddLog(VOS_TRACE_LEVEL_ERROR,
+                 "%s: failed to copy data to user buffer", __func__);
+          kfree(cmd);
+          return -EFAULT;
+       }
+       wrqu->data.length = ret;
+    }
+
+    if (ioctl_debug)
+    {
+       pr_info("%s: rsp [%s] len [%d] status %d\n",
+               __func__, cmd, wrqu->data.length, rc);
+    }
+    kfree(cmd);
+    EXIT();
+    return rc;
+}
+
+static int iw_set_priv(struct net_device *dev,
+                       struct iw_request_info *info,
+                       union iwreq_data *wrqu, char *extra)
+{
+   int ret;
+   vos_ssr_protect(__func__);
+   ret = __iw_set_priv(dev, info, wrqu, extra);
+   vos_ssr_unprotect(__func__);
+
+   return ret;
+}
+
+static int __iw_set_nick(struct net_device *dev,
+                       struct iw_request_info *info,
+                       union iwreq_data *wrqu, char *extra)
+{
+   hdd_adapter_t *pAdapter;
+   hdd_context_t *pHddCtx;
+   int ret = 0;
+
+   ENTER();
+
+   pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+   if (NULL == pAdapter)
+   {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s: Adapter is NULL",__func__);
+       return -EINVAL;
+   }
+
+   pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+   ret = wlan_hdd_validate_context(pHddCtx);
+   if (0 != ret)
+   {
+       return ret;
+   }
+   EXIT();
+   return 0;
+}
+
 static int iw_set_nick(struct net_device *dev,
                        struct iw_request_info *info,
                        union iwreq_data *wrqu, char *extra)
@@ -4389,10 +4749,13 @@ static int __iw_setint_getnone(struct net_device *dev,
         }
         case WE_SET_MAX_TX_POWER_2_4:
         {
+           if (NULL == hHal)
+               return -EINVAL;
+
            hddLog(VOS_TRACE_LEVEL_INFO,
                   "%s: Setting maximum tx power %d dBm for 2.4 GHz band",
                   __func__, set_value);
-           if (sme_SetMaxTxPowerPerBand(eCSR_BAND_24, set_value) !=
+           if (sme_SetMaxTxPowerPerBand(eCSR_BAND_24, set_value, hHal) !=
                                         eHAL_STATUS_SUCCESS)
            {
               hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -4405,10 +4768,13 @@ static int __iw_setint_getnone(struct net_device *dev,
         }
         case WE_SET_MAX_TX_POWER_5_0:
         {
+           if (NULL == hHal)
+               return -EINVAL;
+
            hddLog(VOS_TRACE_LEVEL_INFO,
                   "%s: Setting maximum tx power %d dBm for 5.0 GHz band",
                   __func__, set_value);
-           if (sme_SetMaxTxPowerPerBand(eCSR_BAND_5G, set_value) !=
+           if (sme_SetMaxTxPowerPerBand(eCSR_BAND_5G, set_value, hHal) !=
                                         eHAL_STATUS_SUCCESS)
            {
               hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -4618,6 +4984,124 @@ static int __iw_setint_getnone(struct net_device *dev,
                 ret = -EINVAL;
            }
            break;
+        }
+
+        case WE_SET_MONITOR_STATE:
+        {
+           v_U32_t magic = 0;
+           struct completion cmpVar;
+           long waitRet = 0;
+           tVOS_CON_MODE mode = hdd_get_conparam();
+
+           if( VOS_MONITOR_MODE != mode)
+           {
+               hddLog(LOGE, "invalid mode %d", mode);
+               ret = -EIO;
+           }
+
+           pMonCtx =  WLAN_HDD_GET_MONITOR_CTX_PTR(pAdapter);
+           if( pMonCtx == NULL )
+           {
+             hddLog(LOGE, "Monitor Context NULL");
+             ret = -EIO;
+           }
+           if (pMonCtx->state == set_value)
+           {
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                         FL("already in same mode curr_mode:%d req_mode: %d"),
+                             pMonCtx->state, set_value);
+               break;
+           }
+           pMonCtx->state = set_value;
+           magic = MON_MODE_MSG_MAGIC;
+           init_completion(&cmpVar);
+           if (VOS_STATUS_SUCCESS !=
+                         wlan_hdd_mon_postMsg(&magic, &cmpVar,
+                                               pMonCtx, hdd_monPostMsgCb)) {
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                          FL("failed to post MON MODE REQ"));
+                pMonCtx->state = (pMonCtx->state==MON_MODE_START)?
+                                   MON_MODE_STOP : MON_MODE_START;
+                magic = 0;
+                ret = -EIO;
+                break;
+           }
+           waitRet = wait_for_completion_timeout(&cmpVar, MON_MODE_MSG_TIMEOUT);
+           magic = 0;
+           if (waitRet <= 0 ){
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                    FL("failed to wait on monitor mode completion %ld"),
+                        waitRet);
+           }
+           break;
+        }
+        case WE_SET_PROXIMITY_ENABLE:
+        {
+            sHwCalValues hwCalValues;
+            uint16 hwCalTxPower;
+            uint8 txPwr = TX_PWR_DEF;
+
+            hddLog(LOG1, FL("WE_SET_PROXIMITY_ENABLE: %d"), set_value);
+
+            if (TRUE == set_value) {
+                if(vos_nv_read( VNV_HW_CAL_VALUES, &hwCalValues,
+                                NULL, sizeof(sHwCalValues) )
+                                    != VOS_STATUS_SUCCESS) {
+                    ret = -EINVAL;
+                    break;
+                }
+                hwCalTxPower = (uint16)(hwCalValues.calData.hwParam7 >> 16);
+
+                hddLog(LOG1, FL("hwCalTxPower:%x nv_data:%x"),
+                        hwCalTxPower, hwCalValues.calData.hwParam7);
+
+                txPwr = (int8)(hwCalTxPower & 0x00FF);
+                txPwr = txPwr/10;
+                if (txPwr < TX_PWR_MIN)
+                    txPwr = TX_PWR_MIN;
+                if (txPwr > TX_PWR_MAX)
+                    txPwr = TX_PWR_MAX;
+
+                if (sme_SetMaxTxPowerPerBand(eCSR_BAND_24, txPwr, hHal) !=
+                                        eHAL_STATUS_SUCCESS) {
+                    hddLog(VOS_TRACE_LEVEL_ERROR,
+                      FL("Setting tx power failed for 2.4GHz band %d"), txPwr);
+                    ret = -EIO;
+                }
+
+                txPwr = (int8)((hwCalTxPower >> 8) & 0x00FF);
+                txPwr /= 10;
+                if (txPwr < TX_PWR_MIN)
+                    txPwr = TX_PWR_MIN;
+                if (txPwr > TX_PWR_MAX)
+                    txPwr = TX_PWR_MAX;
+
+                if (sme_SetMaxTxPowerPerBand(eCSR_BAND_5G, txPwr, hHal) !=
+                                        eHAL_STATUS_SUCCESS) {
+                    hddLog(VOS_TRACE_LEVEL_ERROR,
+                      FL("setting tx power failed for 5GHz band %d"), txPwr);
+                    ret = -EIO;
+                }
+            }
+            else if(FALSE == set_value) {
+                if (sme_SetMaxTxPowerPerBand(eCSR_BAND_24, txPwr, hHal) !=
+                                        eHAL_STATUS_SUCCESS) {
+                    hddLog(VOS_TRACE_LEVEL_ERROR,
+                      FL("Setting tx power failed for 2.4GHz band %d"), txPwr);
+                    ret = -EIO;
+                }
+
+                if (sme_SetMaxTxPowerPerBand(eCSR_BAND_5G, txPwr, hHal) !=
+                                        eHAL_STATUS_SUCCESS) {
+                    hddLog(VOS_TRACE_LEVEL_ERROR,
+                      FL("setting tx power failed for 5GHz band %d"), txPwr);
+                    ret = -EIO;
+                }
+            }
+            else {
+                ret = -EINVAL;
+            }
+            break;
         }
         default:
         {

@@ -759,57 +759,24 @@ eHalStatus csrTdlsProcessDelSta( tpAniSirGlobal pMac, tSmeCmd *cmd )
 eHalStatus csrTdlsProcessCmd(tpAniSirGlobal pMac, tSmeCmd *cmd)
 {
     eSmeCommandType  cmdType = cmd->command ;
-#ifdef FEATURE_WLAN_TDLS_INTERNAL
-    tTdlsCmd tdlsCmd = cmd->u.tdlsCmd ;
-#endif
-    tANI_BOOLEAN status = eANI_BOOLEAN_TRUE;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
     switch(cmdType)
     {
         case eSmeCommandTdlsSendMgmt:
-        {
-            status = csrTdlsProcessSendMgmt( pMac, cmd );
-            if(HAL_STATUS_SUCCESS( status ) )
-            {
-               status = eANI_BOOLEAN_FALSE ;
-            }
-        }
+            status = csrTdlsProcessSendMgmt(pMac, cmd);
         break ;
         case eSmeCommandTdlsAddPeer:
-        {
-            status = csrTdlsProcessAddSta( pMac, cmd );
-            if(HAL_STATUS_SUCCESS( status ) )
-            {
-               status = eANI_BOOLEAN_FALSE ;
-            }
-        }
+            status = csrTdlsProcessAddSta(pMac, cmd);
         break;
         case eSmeCommandTdlsDelPeer: 
-        {
-            status = csrTdlsProcessDelSta( pMac, cmd );
-            if(HAL_STATUS_SUCCESS( status ) )
-            {
-               status = eANI_BOOLEAN_FALSE ;
-            }
-        }
+            status = csrTdlsProcessDelSta(pMac, cmd);
         break;
         case eSmeCommandTdlsLinkEstablish:
-        {
-            status = csrTdlsProcessLinkEstablish( pMac, cmd );
-            if(HAL_STATUS_SUCCESS( status ) )
-            {
-               status = eANI_BOOLEAN_FALSE ;
-            }
-        }
+            status = csrTdlsProcessLinkEstablish(pMac, cmd);
         break;
 // tdlsoffchan
         case eSmeCommandTdlsChannelSwitch:
-        {
-             status = csrTdlsProcessChanSwitchReq( pMac, cmd );
-             if(HAL_STATUS_SUCCESS( status ) )
-             {
-               status = eANI_BOOLEAN_FALSE ;
-             }
-        }
+            status = csrTdlsProcessChanSwitchReq(pMac, cmd);
         break;
 #ifdef FEATURE_WLAN_TDLS_INTERNAL
         case eSmeCommandTdlsDiscovery:
@@ -928,11 +895,9 @@ eHalStatus csrTdlsProcessCmd(tpAniSirGlobal pMac, tSmeCmd *cmd)
         }
 #endif
        default:
-       {
+           status = eHAL_STATUS_FAILURE;
             /* TODO: Add defualt handling */  
            break ;
-       } 
-             
     }
     return status ; 
 }

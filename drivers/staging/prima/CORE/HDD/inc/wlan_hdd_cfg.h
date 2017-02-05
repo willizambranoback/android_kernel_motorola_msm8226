@@ -301,6 +301,11 @@
 #define CFG_ENABLE_ADAPT_RX_DRAIN_MAX       WNI_CFG_ENABLE_ADAPT_RX_DRAIN_STAMAX
 #define CFG_ENABLE_ADAPT_RX_DRAIN_DEFAULT   WNI_CFG_ENABLE_ADAPT_RX_DRAIN_STADEF
 
+#define CFG_DISABLE_BAR_WAKEUP_HOST_NAME       "gDisableBarWakeUp"
+#define CFG_DISABLE_BAR_WAKEUP_HOST_MIN         0
+#define CFG_DISABLE_BAR_WAKEUP_HOST_MAX         1
+#define CFG_DISABLE_BAR_WAKEUP_HOST_DEFAULT     0
+
 typedef enum
 {
     eHDD_DOT11_MODE_AUTO = 0, //covers all things we support
@@ -591,12 +596,12 @@ typedef enum
 #define CFG_ACTIVE_MAX_CHANNEL_TIME_NAME       "gActiveMaxChannelTime"
 #define CFG_ACTIVE_MAX_CHANNEL_TIME_MIN        ( 0 )
 #define CFG_ACTIVE_MAX_CHANNEL_TIME_MAX        ( 10000 )
-#define CFG_ACTIVE_MAX_CHANNEL_TIME_DEFAULT    ( 40 )
+#define CFG_ACTIVE_MAX_CHANNEL_TIME_DEFAULT    ( 50 )
 
 #define CFG_ACTIVE_MIN_CHANNEL_TIME_NAME       "gActiveMinChannelTime"
 #define CFG_ACTIVE_MIN_CHANNEL_TIME_MIN        ( 0 )
 #define CFG_ACTIVE_MIN_CHANNEL_TIME_MAX        ( 10000 )
-#define CFG_ACTIVE_MIN_CHANNEL_TIME_DEFAULT    ( 20 )
+#define CFG_ACTIVE_MIN_CHANNEL_TIME_DEFAULT    ( 30 )
 
 #define CFG_ACTIVE_MAX_CHANNEL_TIME_BTC_NAME       "gActiveMaxChannelTimeBtc"
 #define CFG_ACTIVE_MAX_CHANNEL_TIME_BTC_MIN        ( 0 )
@@ -2448,6 +2453,26 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_LINK_FAIL_TX_CNT_MAX     ( 1000 )
 #define CFG_LINK_FAIL_TX_CNT_DEF     ( 200 )
 
+#define CFG_OPTIMIZE_CA_EVENT_NAME       "gOptimizeCAevent"
+#define CFG_OPTIMIZE_CA_EVENT_DISABLE    ( 0 )
+#define CFG_OPTIMIZE_CA_EVENT_ENABLE     ( 1 )
+#define CFG_OPTIMIZE_CA_EVENT_DEFAULT    ( 0 )
+
+/*
+ * BOffsetCorrectionEnable : This ini will control enabling/disabling
+ * of rate dependent power offsets in firmware
+ */
+
+#define CFG_SAR_BOFFSET_SET_CORRECTION_NAME      "gBOffsetCorrectionEnable"
+#define CFG_SAR_BOFFSET_SET_CORRECTION_MIN       (0)
+#define CFG_SAR_BOFFSET_SET_CORRECTION_MAX       (1)
+#define CFG_SAR_BOFFSET_SET_CORRECTION_DEFAULT   (0)
+
+#define CFG_MAXCHAN_FOR_CHANTIME_CORR_NAME       "gMaxChannelForMoreDwellTime"
+#define CFG_MAXCHAN_FOR_CHANTIME_CORR_MIN        (0)
+#define CFG_MAXCHAN_FOR_CHANTIME_CORR_MAX        (35)
+#define CFG_MAXCHAN_FOR_CHANTIME_CORR_DEFAULT    (10)
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -2943,6 +2968,16 @@ typedef struct
    v_BOOL_t                    toggleArpBDRates;
    v_U32_t                     linkFailTimeout;
    v_U32_t                     linkFailTxCnt;
+<<<<<<< HEAD
+=======
+   v_BOOL_t                    ignorePeerHTopMode;
+   v_U8_t                      gOptimizeCAevent;
+   v_BOOL_t                    crash_inject_enabled;
+   v_U16_t                      rps_mask;
+   v_U8_t                      boffset_correction_enable;
+   v_BOOL_t                    disableBarWakeUp;
+   v_U8_t                      max_chan_for_dwell_time_cfg;
+>>>>>>> c6ce4b4... prima: Update to CAF LA.BF.1.1.3-02310-8x26.0
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation
