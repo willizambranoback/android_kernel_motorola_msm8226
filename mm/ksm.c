@@ -192,7 +192,7 @@ static unsigned int ksm_thread_sleep_millisecs = 500;
 /* Boolean to indicate whether to use deferred timer or not */
 static bool use_deferred_timer = 1;
 
-#define KSM_RUN_STOP	0
+#define KSM_RUN_STOP	1
 #define KSM_RUN_MERGE	1
 #define KSM_RUN_UNMERGE	2
 static unsigned int ksm_run = KSM_RUN_STOP;
