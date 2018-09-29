@@ -285,14 +285,14 @@
  * The minimum number of bits of entropy before we wake up a read on
  * /dev/random.  Should be enough to do a significant reseed.
  */
-static int random_read_wakeup_thresh = 64;
+static int random_read_wakeup_thresh = 128;
 
 /*
  * If the entropy count falls under this number of bits, then we
  * should wake up processes which are selecting or polling on write
  * access to /dev/random.
  */
-static int random_write_wakeup_thresh = 128;
+static int random_write_wakeup_thresh = 256;
 
 /*
  * When the input pool goes over trickle_thresh, start dropping most
@@ -1205,7 +1205,7 @@ _random_read(int nonblock, char __user *buf, size_t nbytes)
 static ssize_t
 random_read(struct file *file, char __user *buf, size_t nbytes, loff_t *ppos)
 {
-	return _random_read(file->f_flags & O_NONBLOCK, buf, nbytes);
+	return extract_entropy_user(&nonblocking_pool, buf, nbytes);
 }
 
 static ssize_t
