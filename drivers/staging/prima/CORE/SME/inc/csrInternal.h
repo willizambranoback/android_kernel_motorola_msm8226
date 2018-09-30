@@ -672,16 +672,6 @@ typedef struct tagCsrConfig
     tANI_BOOLEAN initialScanSkipDFSCh;
     tANI_BOOLEAN ignorePeerErpInfo;
     tANI_BOOLEAN sendDeauthBeforeCon;
-
-#ifdef WLAN_FEATURE_AP_HT40_24G
-    tANI_BOOLEAN apHT40_24GEnabled;
-    tANI_U32 channelBondingAPMode24GHz; // Use for SAP/P2P GO 2.4GHz channel Bonding
-#endif
-    tANI_U32 nOBSSScanWidthTriggerInterval;
-    tANI_U8 roamDelayStatsEnabled;
-    tANI_BOOLEAN ignorePeerHTopMode;
-    tANI_BOOLEAN disableP2PMacSpoofing;
-    tANI_U8 max_chan_for_dwell_time_cfg;
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo

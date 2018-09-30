@@ -903,28 +903,28 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 #endif
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
             {
-                struct station_info *staInfo;
                 v_U16_t iesLen =  pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.iesLen;
 
-                staInfo = vos_mem_malloc(sizeof(*staInfo));
-                if (staInfo == NULL) {
-                    hddLog(LOGE, FL("alloc station_info failed"));
-                    return VOS_STATUS_E_NOMEM;
-                }
-
-                memset(staInfo, 0, sizeof(*staInfo));
                 if (iesLen <= MAX_ASSOC_IND_IE_LEN )
                 {
-                    staInfo->assoc_req_ies =
+                    struct station_info *stainfo;
+                    stainfo = vos_mem_malloc(sizeof(*stainfo));
+                    if (stainfo == NULL) {
+                        hddLog(LOGE, FL("alloc station_info failed"));
+                        return VOS_STATUS_E_NOMEM;
+                    }
+                    memset(stainfo, 0, sizeof(*stainfo));
+
+                    stainfo->assoc_req_ies =
                         (const u8 *)&pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.ies[0];
-                    staInfo->assoc_req_ies_len = iesLen;
+                    stainfo->assoc_req_ies_len = iesLen;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,31))
-                    staInfo->filled |= STATION_INFO_ASSOC_REQ_IES;
+                    stainfo->filled |= STATION_INFO_ASSOC_REQ_IES;
 #endif
                     cfg80211_new_sta(dev,
                                  (const u8 *)&pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac.bytes[0],
-                                 staInfo, GFP_KERNEL);
-                    vos_mem_free(staInfo);
+                                 stainfo, GFP_KERNEL);
+                    vos_mem_free(stainfo);
                 }
                 else
                 {
@@ -2509,10 +2509,9 @@ int __iw_get_genie(struct net_device *dev,
                  struct iw_request_info *info,
                  union iwreq_data *wrqu, char *extra)
 {
-    hdd_adapter_t *pHostapdAdapter;
-    hdd_context_t *pHddCtx;
-    v_CONTEXT_t pVosContext;
-    VOS_STATUS status;
+    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext; 
+    eHalStatus status;
     v_U32_t length = DOT11F_IE_RSN_MAX_LEN;
     v_U8_t genIeBytes[DOT11F_IE_RSN_MAX_LEN];
     ENTER();
@@ -2521,23 +2520,19 @@ int __iw_get_genie(struct net_device *dev,
     status = WLANSap_getstationIE_information(pVosContext, 
                                    &length,
                                    genIeBytes);
-
-    if (VOS_STATUS_SUCCESS != status) {
-        hddLog(LOGE, FL("failed to get sta ies"));
+    length = VOS_MIN((u_int16_t) length, DOT11F_IE_RSN_MAX_LEN);
+    if (wrqu->data.length < length ||
+        copy_to_user(wrqu->data.pointer,
+                      (v_VOID_t*)genIeBytes, length))
+    {
+        hddLog(LOG1, "%s: failed to copy data to user buffer", __func__);
         return -EFAULT;
     }
-
     wrqu->data.length = length;
-    if (length > DOT11F_IE_RSN_MAX_LEN) {
-        hddLog(LOGE,
-               FL("invalid buffer length length:%d"), length);
-        return -E2BIG;
-    }
-
-    vos_mem_copy(extra, genIeBytes, length);
-
-    hddLog(LOG1, FL("RSN IE of %d bytes returned"), wrqu->data.length);
-
+    
+    hddLog(LOG1,FL(" RSN IE of %d bytes returned"), wrqu->data.length );
+    
+   
     EXIT();
     return 0;
 }
@@ -3054,7 +3049,6 @@ static int iw_get_mode(struct net_device *dev,
     return ret;
 }
 
-
 static int __iw_softap_stopbss(struct net_device *dev,
                              struct iw_request_info *info,
                              union iwreq_data *wrqu,
@@ -3137,17 +3131,13 @@ static int iw_softap_version(struct net_device *dev,
     return ret;
 }
 
-int hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
+VOS_STATUS hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
 {
     v_U8_t i;
     int len = 0;
     const char sta_info_header[] = "staId staAddress\n";
 
-    len = snprintf(pBuf, buf_len, sta_info_header);
-    if (len >= buf_len) {
-        hddLog(LOGE, FL("Insufficient buffer:%d, %d"), buf_len, len);
-        return -E2BIG;
-    }
+    len = scnprintf(pBuf, buf_len, sta_info_header);
     pBuf += len;
     buf_len -= len;
 
@@ -3156,17 +3146,13 @@ int hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
         if(pAdapter->aStaInfo[i].isUsed)
         {
             len = scnprintf(pBuf, buf_len, "%5d .%02x:%02x:%02x:%02x:%02x:%02x\n",
-                                       pSapCtx->aStaInfo[i].ucSTAId,
-                                       pSapCtx->aStaInfo[i].macAddrSTA.bytes[0],
-                                       pSapCtx->aStaInfo[i].macAddrSTA.bytes[1],
-                                       pSapCtx->aStaInfo[i].macAddrSTA.bytes[2],
-                                       pSapCtx->aStaInfo[i].macAddrSTA.bytes[3],
-                                       pSapCtx->aStaInfo[i].macAddrSTA.bytes[4],
-                                       pSapCtx->aStaInfo[i].macAddrSTA.bytes[5]);
-            if (len >= buf_len) {
-                hddLog(LOGE, FL("Insufficient buffer:%d, %d"), buf_len, len);
-                return -E2BIG;
-            }
+                                       pAdapter->aStaInfo[i].ucSTAId,
+                                       pAdapter->aStaInfo[i].macAddrSTA.bytes[0],
+                                       pAdapter->aStaInfo[i].macAddrSTA.bytes[1],
+                                       pAdapter->aStaInfo[i].macAddrSTA.bytes[2],
+                                       pAdapter->aStaInfo[i].macAddrSTA.bytes[3],
+                                       pAdapter->aStaInfo[i].macAddrSTA.bytes[4],
+                                       pAdapter->aStaInfo[i].macAddrSTA.bytes[5]);
             pBuf += len;
             buf_len -= len;
         }
@@ -3175,8 +3161,7 @@ int hdd_softap_get_sta_info(hdd_adapter_t *pAdapter, v_U8_t *pBuf, int buf_len)
             break;
         }
     }
-    EXIT();
-    return 0;
+    return VOS_STATUS_SUCCESS;
 }
 
 static int iw_softap_get_sta_info(struct net_device *dev,
@@ -3185,12 +3170,12 @@ static int iw_softap_get_sta_info(struct net_device *dev,
         char *extra)
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-    int ret;
+    VOS_STATUS status;
     ENTER();
-    ret = hdd_softap_get_sta_info(pHostapdAdapter, extra, WE_SAP_MAX_STA_INFO);
-    if (ret) {
+    status = hdd_softap_get_sta_info(pHostapdAdapter, extra, WE_SAP_MAX_STA_INFO);
+    if ( !VOS_IS_STATUS_SUCCESS( status ) ) {
        hddLog(VOS_TRACE_LEVEL_ERROR, "%s Failed!!!",__func__);
-       return ret;
+       return -EINVAL;
     }
     wrqu->data.length = strlen(extra);
     EXIT();
@@ -3536,7 +3521,7 @@ static const struct iw_priv_args hostapd_private_args[] = {
   { QCSAP_PARAM_ACL_MODE,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "setAclMode" },
   { QCSAP_IOCTL_GET_STAWPAIE,
-      0, IW_PRIV_TYPE_BYTE | DOT11F_IE_RSN_MAX_LEN, "get_staWPAIE" },
+      IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED | 1, 0, "get_staWPAIE" },
   { QCSAP_IOCTL_STOPBSS,
       IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED, 0, "stopbss" },
   { QCSAP_IOCTL_VERSION, 0,

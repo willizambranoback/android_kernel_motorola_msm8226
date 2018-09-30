@@ -258,8 +258,7 @@ int wlan_hdd_tdls_set_peer_caps(hdd_adapter_t *pAdapter,
                                 u8 *mac,
                                 tCsrStaParams *StaParams,
                                 tANI_BOOLEAN isBufSta,
-                                tANI_BOOLEAN isOffChannelSupported,
-                                tANI_BOOLEAN isQosWmmSta);
+                                tANI_BOOLEAN isOffChannelSupported);
 
 int wlan_hdd_tdls_set_rssi(hdd_adapter_t *pAdapter, u8 *mac, tANI_S8 rxRssi);
 

@@ -1094,11 +1094,13 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
     }
     swapBitField16(caps, ( tANI_U16* )&tdlsDisRsp.Capabilities );
 
-    /* populate supported rate and ext supported rate IE */
-    if (eSIR_FAILURE == PopulateDot11fRatesTdls(pMac, &tdlsDisRsp.SuppRates,
-                               &tdlsDisRsp.ExtSuppRates,
-                               psessionEntry->currentOperChannel))
-        limLog(pMac, LOGE, FL("could not populate supported data rates"));
+    /* populate supported rate IE */
+    PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL, 
+                                     &tdlsDisRsp.SuppRates, psessionEntry );
+   
+    /* Populate extended supported rates */
+    PopulateDot11fExtSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
+                                &tdlsDisRsp.ExtSuppRates, psessionEntry );
 
     /* Populate extended supported rates */
     PopulateDot11fTdlsExtCapability( pMac, &tdlsDisRsp.ExtCap );
@@ -1358,14 +1360,13 @@ tSirRetStatus limSendTdlsLinkSetupReqFrame(tpAniSirGlobal pMac,
 
     swapBitField16(caps, ( tANI_U16* )&tdlsSetupReq.Capabilities );
 
-    limLog(pMac, LOG1, FL("Sending operating channel %d and dotl11mode %d\n"),
-           psessionEntry->currentOperChannel,
-           psessionEntry->dot11mode);
+    /* populate supported rate IE */
+    PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
+                              &tdlsSetupReq.SuppRates, psessionEntry );
 
-    /* populate supported rate and ext supported rate IE */
-    PopulateDot11fRatesTdls(pMac, &tdlsSetupReq.SuppRates,
-                               &tdlsSetupReq.ExtSuppRates,
-                               psessionEntry->currentOperChannel);
+    /* Populate extended supported rates */
+    PopulateDot11fExtSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
+                                &tdlsSetupReq.ExtSuppRates, psessionEntry );
 
     /* Populate extended supported rates */
     PopulateDot11fTdlsExtCapability( pMac, &tdlsSetupReq.ExtCap );
@@ -1798,10 +1799,13 @@ static tSirRetStatus limSendTdlsSetupRspFrame(tpAniSirGlobal pMac,
 
     swapBitField16(caps, ( tANI_U16* )&tdlsSetupRsp.Capabilities );
 
-    /* populate supported rate and ext supported rate IE */
-    PopulateDot11fRatesTdls(pMac, &tdlsSetupRsp.SuppRates,
-                                &tdlsSetupRsp.ExtSuppRates,
-                                psessionEntry->currentOperChannel);
+    /* ipopulate supported rate IE */
+    PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL, 
+                                &tdlsSetupRsp.SuppRates, psessionEntry );
+   
+    /* Populate extended supported rates */
+    PopulateDot11fExtSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
+                                &tdlsSetupRsp.ExtSuppRates, psessionEntry );
 
     /* Populate extended supported rates */
     PopulateDot11fTdlsExtCapability( pMac, &tdlsSetupRsp.ExtCap );
@@ -2840,25 +2844,7 @@ static void limTdlsUpdateHashNodeInfo(tpAniSirGlobal pMac, tDphHashNode *pStaDs,
     {
         pStaDs->mlmStaContext.htCapability = 1 ;
         pStaDs->htGreenfield = htCaps->greenField ;
-        /* pStaDs->htSupportedChannelWidthSet should have the base channel
-         * capability. The htSupportedChannelWidthSet of the TDLS link on
-         * base channel should be less than or equal to channel width of
-         * STA-AP link. So take this setting from the psessionEntry.
-         */
-        limLog(pMac, LOG1,
-               FL("supportedChannelWidthSet %x htSupportedChannelWidthSet %x"),
-               htCaps->supportedChannelWidthSet,
-               psessionEntry->htSupportedChannelWidthSet);
-
-        pStaDs->htSupportedChannelWidthSet =
-                (htCaps->supportedChannelWidthSet <
-                  psessionEntry->htSupportedChannelWidthSet) ?
-                      htCaps->supportedChannelWidthSet :
-                      psessionEntry->htSupportedChannelWidthSet;
-
-        limLog(pMac, LOG1, FL("pStaDs->htSupportedChannelWidthSet %x"),
-               pStaDs->htSupportedChannelWidthSet);
-
+        pStaDs->htSupportedChannelWidthSet =  htCaps->supportedChannelWidthSet ;
         pStaDs->htMIMOPSState =             htCaps->mimoPowerSave ;
         pStaDs->htMaxAmsduLength =  htCaps->maximalAMSDUsize;
         pStaDs->htAMpduDensity =    htCaps->mpduDensity;
@@ -2884,11 +2870,17 @@ static void limTdlsUpdateHashNodeInfo(tpAniSirGlobal pMac, tDphHashNode *pStaDs,
     {
         pStaDs->mlmStaContext.vhtCapability = 1 ;
 
-        pStaDs->vhtSupportedChannelWidthSet =
-                    psessionEntry->vhtTxChannelWidthSet;
-
-        limLog(pMac, LOG1, FL("Vht supported channel width is set to = %d"),
-               pStaDs->vhtSupportedChannelWidthSet);
+        if ((psessionEntry->currentOperChannel <= SIR_11B_CHANNEL_END) &&
+            pMac->roam.configParam.enableVhtFor24GHz)
+        {
+            pStaDs->vhtSupportedChannelWidthSet = WNI_CFG_VHT_CHANNEL_WIDTH_20_40MHZ;
+            pStaDs->htSupportedChannelWidthSet = eHT_CHANNEL_WIDTH_20MHZ;
+        }
+        else
+        {
+            pStaDs->vhtSupportedChannelWidthSet =  WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ;
+            pStaDs->htSupportedChannelWidthSet = eHT_CHANNEL_WIDTH_40MHZ ;
+        }
 
         pStaDs->vhtLdpcCapable = pVhtCaps->ldpcCodingCap;
         pStaDs->vhtBeamFormerCapable= pVhtCaps->suBeamFormerCap;

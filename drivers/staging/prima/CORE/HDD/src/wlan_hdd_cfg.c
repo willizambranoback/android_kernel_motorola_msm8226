@@ -3277,47 +3277,6 @@ REG_VARIABLE( CFG_EXTSCAN_ENABLE, WLAN_PARAM_Integer,
                  CFG_LINK_FAIL_TX_CNT_DEF,
                  CFG_LINK_FAIL_TX_CNT_MIN,
                  CFG_LINK_FAIL_TX_CNT_MAX ),
-   REG_VARIABLE( CFG_OPTIMIZE_CA_EVENT_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, gOptimizeCAevent,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_OPTIMIZE_CA_EVENT_DEFAULT,
-                 CFG_OPTIMIZE_CA_EVENT_DISABLE,
-                 CFG_OPTIMIZE_CA_EVENT_ENABLE ),
-   REG_VARIABLE( CFG_ENABLE_CRASH_INJECT, WLAN_PARAM_Integer,
-                 hdd_config_t, crash_inject_enabled,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_ENABLE_CRASH_INJECT_DEFAULT,
-                 CFG_ENABLE_CRASH_INJECT_MIN,
-                 CFG_ENABLE_CRASH_INJECT_MAX),
-
-    REG_VARIABLE( CFG_RPS_CPU_MAP_NAME, WLAN_PARAM_HexInteger,
-                 hdd_config_t, rps_mask,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_RPS_CPU_MAP_DEFAULT,
-                 CFG_RPS_CPU_MAP_MIN,
-                 CFG_RPS_CPU_MAP_MAX),
-
-    REG_VARIABLE(CFG_SAR_BOFFSET_SET_CORRECTION_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, boffset_correction_enable,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_SAR_BOFFSET_SET_CORRECTION_DEFAULT,
-                 CFG_SAR_BOFFSET_SET_CORRECTION_MIN,
-                 CFG_SAR_BOFFSET_SET_CORRECTION_MAX),
-
-    REG_VARIABLE(CFG_DISABLE_BAR_WAKEUP_HOST_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, disableBarWakeUp,
-                 VAR_FLAGS_OPTIONAL |
-                 VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_DISABLE_BAR_WAKEUP_HOST_DEFAULT,
-                 CFG_DISABLE_BAR_WAKEUP_HOST_MIN,
-                 CFG_DISABLE_BAR_WAKEUP_HOST_MAX),
-
-  REG_VARIABLE( CFG_MAXCHAN_FOR_CHANTIME_CORR_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, max_chan_for_dwell_time_cfg,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_MAXCHAN_FOR_CHANTIME_CORR_DEFAULT,
-                 CFG_MAXCHAN_FOR_CHANTIME_CORR_MIN,
-                 CFG_MAXCHAN_FOR_CHANTIME_CORR_MAX ),
 };
 
 /*
@@ -3732,14 +3691,6 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gDeferScanTimeInterval] value = [%u]\n",pHddCtx->cfg_ini->nDeferScanTimeInterval);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableTDLSScan] value = [%u]\n",pHddCtx->cfg_ini->fEnableTDLSScan);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [toggleArpBDRates] Value = [%u] ", pHddCtx->cfg_ini->toggleArpBDRates);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableForceTargetAssert] Value = [%u] ", pHddCtx->cfg_ini->crash_inject_enabled);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
-          "Name = [disableBarWakeUp] Value = [%u] ",
-          pHddCtx->cfg_ini->disableBarWakeUp);
-
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
-          "Name = [gMaxChannelForMoreDwellTime] Value = [%u] ",
-          pHddCtx->cfg_ini->max_chan_for_dwell_time_cfg);
 }
 
 
@@ -3817,7 +3768,7 @@ VOS_STATUS hdd_cfg_get_config(hdd_context_t *pHddCtx, char *pBuf, int buflen)
       // ideally we want to return the config to the application
       // however the config is too big so we just printk() for now
 #ifdef RETURN_IN_BUFFER
-      if (curlen < buflen)
+      if (curlen <= buflen)
       {
          // copy string + '\0'
          memcpy(pCur, configStr, curlen+1);
@@ -5277,38 +5228,6 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
       fStatus = FALSE;
       hddLog(LOGE, "Could not pass on WNI_CFG_LINK_FAIL_TX_CNT ");
    }
-   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_OPTIMIZE_CA_EVENT,
-                    pConfig->gOptimizeCAevent, NULL,
-                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
-   {
-      fStatus = FALSE;
-      hddLog(LOGE, "Could not pass on WNI_CFG_OPTIMIZE_CA_EVENT ");
-   }
-
-   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_ENABLE_MAC_ADDR_SPOOFING,
-                    pConfig->enableMacSpoofing, NULL,
-                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
-   {
-      fStatus = FALSE;
-      hddLog(LOGE, "Could not pass on WNI_CFG_ENABLE_MAC_ADDR_SPOOFING ");
-   }
-
-   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_SAR_BOFFSET_SET_CORRECTION,
-               pConfig->boffset_correction_enable,
-               NULL, eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
-   {
-       fStatus = FALSE;
-       hddLog(LOGE, "Could not pass on WNI_CFG_SAR_BOFFSET_SET_CORRECTION to CCM");
-   }
-
-   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_DISABLE_BAR_WAKE_UP_HOST,
-               pConfig->disableBarWakeUp,
-               NULL, eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
-   {
-       fStatus = FALSE;
-       hddLog(LOGE, "Could not pass on WNI_CFG_DISABLE_BAR_WAKE_UP_HOST to CCM");
-   }
-
    return fStatus;
 }
 
@@ -5560,10 +5479,6 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 
    smeConfig->fDeferIMPSTime = pHddCtx->cfg_ini->deferImpsTime;
    smeConfig->fBtcEnableIndTimerVal = pHddCtx->cfg_ini->btcEnableIndTimerVal;
-
-   smeConfig->csrConfig.roamDelayStatsEnabled = pHddCtx->cfg_ini->gEnableRoamDelayStats;
-   smeConfig->csrConfig.max_chan_for_dwell_time_cfg =
-                        pHddCtx->cfg_ini->max_chan_for_dwell_time_cfg;
 
    halStatus = sme_UpdateConfig( pHddCtx->hHal, smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )

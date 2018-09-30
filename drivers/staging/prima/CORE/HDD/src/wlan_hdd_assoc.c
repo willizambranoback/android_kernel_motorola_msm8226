@@ -1758,18 +1758,27 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
             }
             else
             {
-                if (pRoamInfo)
+                if (pRoamInfo){
+                    eCsrAuthType authType =
+                        pWextState->roamProfile.AuthType.authType[0];
+                    v_BOOL_t isWep = (authType == eCSR_AUTH_TYPE_OPEN_SYSTEM) ||
+                                     (authType == eCSR_AUTH_TYPE_SHARED_KEY);
+
+                     /* In case of OPEN-WEP or SHARED-WEP authentication,
+                     * send exact protocol reason code. This enables user
+                     * applications to reconnect the station with correct
+                     * configuration.
+                     */
                     cfg80211_connect_result ( dev, pRoamInfo->bssid,
                         NULL, 0, NULL, 0,
-                        pRoamInfo->reasonCode ?
-                        pRoamInfo->reasonCode :
+                        isWep ? pRoamInfo->reasonCode :
                         WLAN_STATUS_UNSPECIFIED_FAILURE,
                         GFP_KERNEL );
-                else
+              } else
                     cfg80211_connect_result ( dev, pWextState->req_bssId,
                         NULL, 0, NULL, 0,
                         WLAN_STATUS_UNSPECIFIED_FAILURE,
-                         GFP_KERNEL );
+                        GFP_KERNEL );
             }
         }
 
@@ -2301,7 +2310,7 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
       case eCSR_ROAM_RESULT_IBSS_NEW_PEER:
       {
          hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-         struct station_info *staInfo;
+         struct station_info *stainfo;
 
          pr_info ( "IBSS New Peer indication from SME "
                     "with peerMac " MAC_ADDRESS_STR " BSSID: " MAC_ADDRESS_STR " and stationID= %d",
@@ -2335,22 +2344,20 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
                vosStatus, vosStatus );
          }
          pHddStaCtx->ibss_sta_generation++;
-
-         staInfo = vos_mem_malloc(sizeof(*staInfo));
-         if (staInfo == NULL) {
+         stainfo = vos_mem_malloc(sizeof(*stainfo));
+         if (stainfo == NULL) {
              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                        "memory allocation for station_info failed");
              return eHAL_STATUS_FAILED_ALLOC;
          }
-
-         memset(staInfo, 0, sizeof(*staInfo));
-         staInfo->filled = 0;
-         staInfo->generation = pHddStaCtx->ibss_sta_generation;
+         memset(stainfo, 0, sizeof(*stainfo));
+         stainfo->filled = 0;
+         stainfo->generation = pHddStaCtx->ibss_sta_generation;
 
          cfg80211_new_sta(pAdapter->dev,
-                      (const u8 *)pRoamInfo->peerMac,
-                      staInfo, GFP_KERNEL);
-         vos_mem_free(staInfo);
+                          (const u8 *)pRoamInfo->peerMac,
+                          stainfo, GFP_KERNEL);
+         vos_mem_free(stainfo);
 
          if ( eCSR_ENCRYPT_TYPE_WEP40_STATICKEY == pHddStaCtx->ibss_enc_key.encType
             ||eCSR_ENCRYPT_TYPE_WEP104_STATICKEY == pHddStaCtx->ibss_enc_key.encType
@@ -3008,8 +3015,7 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
                 if((pHddCtx) &&
                    (VOS_TRUE == pHddStaCtx->hdd_ReassocScenario) &&
                    (TRUE == pHddCtx->hdd_wlan_suspended) &&
-                   ((eCSR_ROAM_RESULT_NONE == roamResult)||
-                     (pRoamInfo && pRoamInfo->is11rAssoc)))
+                   (eCSR_ROAM_RESULT_NONE == roamResult))
                 {
                     /* Send DTIM period to the FW; only if the wlan is already
                        in suspend. This is the case with roaming (reassoc),
@@ -3033,27 +3039,8 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
                                          eSME_FULL_PWR_NEEDED_BY_HDD);
                     }
                 }
-
-                if ((pHddCtx) &&
-                    (FULL_POWER == pmcGetPmcState(pHddCtx->hHal)) &&
-                    (VOS_TRUE == pHddStaCtx->hdd_ReassocScenario) &&
-                    ((eCSR_ROAM_RESULT_NONE == roamResult) ||
-                      (pRoamInfo && pRoamInfo->is11rAssoc)))
-                {
-                    hddLog( LOG1, FL("Device in full power."
-                           "Stop and start traffic timer for roaming"));
-                    pmcStopTrafficTimer(pHddCtx->hHal);
-                    if (pmcStartTrafficTimer(pHddCtx->hHal,
-                        TRAFFIC_TIMER_ROAMING) != eHAL_STATUS_SUCCESS)
-                    {
-                       hddLog(LOGP, FL("Cannot start traffic timer"));
-                    }
-                }
-
                 halStatus = hdd_RoamSetKeyCompleteHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
-                if ((eCSR_ROAM_RESULT_NONE == roamResult) ||
-                     (pRoamInfo && pRoamInfo->is11rAssoc))
-                    pHddStaCtx->hdd_ReassocScenario = FALSE;
+                pHddStaCtx->hdd_ReassocScenario = FALSE;
             }
             break;
 #ifdef WLAN_FEATURE_VOWIFI_11R

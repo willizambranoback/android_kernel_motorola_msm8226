@@ -300,25 +300,6 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    int os_status = NETDEV_TX_OK; 
    struct sk_buff *skb1;
 
-   v_CONTEXT_t pVosContext = ( WLAN_HDD_GET_CTX(pAdapter))->pvosContext;
-   ptSapContext pSapCtx = NULL;
-   pSapCtx = VOS_GET_SAP_CB(pVosContext);
-   if(pSapCtx == NULL){
-       VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
-             FL("psapCtx is NULL"));
-       ++pAdapter->stats.tx_dropped;
-       ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
-       kfree_skb(skb);
-       return os_status;
-   }
-
-   if (pHddCtx == NULL)
-   {
-      VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
-            FL("pHddCtx is NULL"));
-      goto xmit_done;
-   }
-
    pDestMacAddress = (v_MACADDR_t*)skb->data;
    
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;

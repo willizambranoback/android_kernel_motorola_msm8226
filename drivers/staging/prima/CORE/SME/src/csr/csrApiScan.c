@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -812,23 +812,6 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                                    "dwell time for first scan %u"),
                                     scanReq.maxChnTime);
                         }
-                        if (!(pScanRequest->p2pSearch)
-                           &&(pScanRequest->ChannelInfo.numOfChannels
-                           < pMac->roam.configParam.
-                                 max_chan_for_dwell_time_cfg))
-                        {
-                            pScanRequest->maxChnTime =
-                                    pScanRequest->maxChnTime << 1;
-                            pScanRequest->minChnTime =
-                                    pScanRequest->minChnTime << 1;
-                            smsLog(pMac, LOG1,
-                                    FL("Double ChnTime (Max=%d Min=%d) numOfChannels=%d max_chan_for_dwell_time_cfg=%d"),
-                                    pScanRequest->maxChnTime,
-                                    pScanRequest->minChnTime,
-                                    pScanRequest->ChannelInfo.numOfChannels,
-                                    pMac->roam.configParam.
-                                        max_chan_for_dwell_time_cfg);
-                        }
 
                         status = csrScanCopyRequest(pMac, &p11dScanCmd->u.scanCmd.u.scanRequest, &scanReq);
                         //Free the channel list
@@ -889,19 +872,6 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tANI_U16 sessionId,
                                  pScanRequest->maxChnTime);
                 }
 
-                if (!(pScanRequest->p2pSearch)
-                         && (pScanRequest->ChannelInfo.numOfChannels
-                         < pMac->roam.configParam.max_chan_for_dwell_time_cfg))
-                {
-                    pScanRequest->maxChnTime = pScanRequest->maxChnTime << 1;
-                    pScanRequest->minChnTime = pScanRequest->minChnTime << 1;
-                    smsLog(pMac, LOG1,
-                            FL("Double ChnTime (Max=%d Min=%d) numOfChannels=%d max_chan_for_dwell_time_cfg=%d"),
-                            pScanRequest->maxChnTime,
-                            pScanRequest->minChnTime,
-                            pScanRequest->ChannelInfo.numOfChannels,
-                            pMac->roam.configParam.max_chan_for_dwell_time_cfg);
-                }
                 status = csrScanCopyRequest(pMac, &pScanCmd->u.scanCmd.u.scanRequest, pScanRequest);
                 if(HAL_STATUS_SUCCESS(status))
                 {
@@ -5256,9 +5226,6 @@ eHalStatus csrScanSmeScanResponse( tpAniSirGlobal pMac, void *pMsgBuf )
         pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
         if ( eSmeCommandScan == pCommand->command )
         {
-            /* Purge the scan results based on Aging */
-            if (pEntry && pMac->scan.scanResultCfgAgingTime)
-                csrPurgeScanResultByAge(pMac);
             scanStatus = (eSIR_SME_SUCCESS == pScanRsp->statusCode) ? eCSR_SCAN_SUCCESS : eCSR_SCAN_FAILURE;
             reason = pCommand->u.scanCmd.reason;
             switch(pCommand->u.scanCmd.reason)
@@ -6282,15 +6249,10 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
                      /* Since in CsrScanRequest,value of pMac->scan.nextScanID
                       * is incremented before calling CsrScanCopyRequest, as a
                       * result pMac->scan.nextScanID is equal to ONE for the
-                      * first scan. If number of channels is less than
-                      * max chan for dwell time no need to skip dfs
-                      * in first scan as anyway few channels will be scanned and
-                      * it will not take much time to display results on GUI.
+                      * first scan.
                       */
-                     if (((pSrcReq->ChannelInfo.numOfChannels >=
-                          pMac->roam.configParam.max_chan_for_dwell_time_cfg) &&
-                         (pMac->roam.configParam.initialScanSkipDFSCh &&
-                           1 == pMac->scan.nextScanID)) ||(pMac->miracast_mode))
+                     if ((pMac->roam.configParam.initialScanSkipDFSCh &&
+                              1 == pMac->scan.nextScanID) ||(pMac->miracast_mode))
                      {
                        smsLog(pMac, LOG1,
                               FL("Initial scan, scan only non-DFS channels"));
