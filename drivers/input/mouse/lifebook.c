@@ -254,7 +254,7 @@ static void lifebook_disconnect(struct psmouse *psmouse)
 	psmouse->private = NULL;
 }
 
-static int lifebook_detect(struct psmouse *psmouse, bool set_properties)
+int lifebook_detect(struct psmouse *psmouse, bool set_properties)
 {
         if (!lifebook_present)
                 return -1;

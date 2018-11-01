@@ -30,6 +30,7 @@
 
 #include <linux/gpio.h>
 #include <linux/interrupt.h>
+#include <linux/lcd_notify.h>
 #include <mach/mmi_panel_notifier.h>
 
 #include "mdss_dsi.h"
@@ -791,6 +792,8 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 	mfd = pdata->mfd;
 	pr_info("%s+: ctrl=%pK ndx=%d\n", __func__, ctrl, ctrl->ndx);
 
+	lcd_notifier_call_chain(LCD_EVENT_ON_START);
+
 	if (!mfd->quickdraw_in_progress)
 		mmi_panel_notify(MMI_PANEL_EVENT_PRE_DISPLAY_ON, NULL);
 
@@ -865,6 +868,7 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 		pdata->panel_info.cabc_mode = CABC_UI_MODE;
 
 end:
+
 	if (dropbox_issue != NULL) {
 		char dropbox_entry[256];
 
@@ -877,6 +881,8 @@ end:
 			dropbox_entry, strlen(dropbox_entry));
 	} else
 		dropbox_count = 0;
+
+	lcd_notifier_call_chain(LCD_EVENT_ON_END);
 
 	pr_info("%s-. Pwr_mode(0x0A) = 0x%x\n", __func__, pwr_mode);
 
@@ -899,6 +905,8 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 
 	mfd = pdata->mfd;
 	pr_info("%s+: ctrl=%pK ndx=%d\n", __func__, ctrl, ctrl->ndx);
+
+	lcd_notifier_call_chain(LCD_EVENT_OFF_START);
 
 	mipi  = &pdata->panel_info.mipi;
 
@@ -934,6 +942,8 @@ disable_regs:
 
 	if (pdata->panel_info.dynamic_cabc_enabled)
 		pdata->panel_info.cabc_mode = CABC_OFF_MODE;
+
+	lcd_notifier_call_chain(LCD_EVENT_OFF_END);
 
 	pr_info("%s-:\n", __func__);
 

@@ -56,7 +56,7 @@ struct psmouse {
 	unsigned long num_resyncs;
 	enum psmouse_state state;
 	char devname[64];
-	char phys[40];
+	char phys[32];
 
 	unsigned int rate;
 	unsigned int resolution;

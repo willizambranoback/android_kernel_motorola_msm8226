@@ -205,9 +205,6 @@ struct android_dev {
 	struct usb_composite_dev *cdev;
 	struct device *dev;
 
-	void (*setup_complete)(struct usb_ep *ep,
-				struct usb_request *req);
-
 	bool enabled;
 	int disable_depth;
 	struct mutex mutex;
@@ -298,6 +295,7 @@ static struct usb_device_descriptor device_desc = {
 	.bDeviceClass         = USB_CLASS_PER_INTERFACE,
 	.idVendor             = __constant_cpu_to_le16(VENDOR_ID),
 	.idProduct            = __constant_cpu_to_le16(PRODUCT_ID),
+	.bcdDevice            = __constant_cpu_to_le16(0xffff),
 	.bNumConfigurations   = 1,
 };
 
@@ -459,7 +457,6 @@ static int android_enable(struct android_dev *dev)
 			if (err < 0) {
 				pr_err("%s: usb_add_config failed : err: %d\n",
 						__func__, err);
-				dev->disable_depth++;
 				return err;
 			}
 		}
@@ -2761,7 +2758,6 @@ functions_store(struct device *pdev, struct device_attribute *attr,
 	strlcpy(buf, buff, sizeof(buf));
 	b = strim(buf);
 
-	dev->cdev->gadget->streaming_enabled = false;
 	while (b) {
 		conf_str = strsep(&b, ":");
 		if (conf_str) {
@@ -2857,8 +2853,7 @@ static ssize_t enable_store(struct device *pdev, struct device_attribute *attr,
 		 */
 		cdev->desc.idVendor = device_desc.idVendor;
 		cdev->desc.idProduct = device_desc.idProduct;
-		if (device_desc.bcdDevice)
-			cdev->desc.bcdDevice = device_desc.bcdDevice;
+		cdev->desc.bcdDevice = device_desc.bcdDevice;
 		cdev->desc.bDeviceClass = device_desc.bDeviceClass;
 		cdev->desc.bDeviceSubClass = device_desc.bDeviceSubClass;
 		cdev->desc.bDeviceProtocol = device_desc.bDeviceProtocol;
@@ -3106,6 +3101,10 @@ static void android_unbind_config(struct usb_configuration *c)
 {
 	struct android_dev *dev = cdev_to_android_dev(c->cdev);
 
+	if (c->cdev->gadget->streaming_enabled) {
+		c->cdev->gadget->streaming_enabled = false;
+		pr_debug("setting streaming_enabled to false.\n");
+	}
 	android_unbind_enabled_functions(dev, c);
 }
 
@@ -3120,9 +3119,6 @@ static int android_bind(struct usb_composite_dev *cdev)
 	dev = list_entry(android_dev_list.prev, struct android_dev, list_item);
 
 	dev->cdev = cdev;
-
-	/* Save the default handler */
-	dev->setup_complete = cdev->req->complete;
 
 	/*
 	 * Start disconnected. Userspace will connect the gadget once
@@ -3219,7 +3215,6 @@ android_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *c)
 	req->zero = 0;
 	req->complete = composite_setup_complete;
 	req->length = 0;
-	req->complete = dev->setup_complete;
 	gadget->ep0->driver_data = cdev;
 
 	switch (c->bRequestType & USB_TYPE_MASK) {

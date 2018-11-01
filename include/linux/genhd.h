@@ -57,7 +57,7 @@ enum {
 };
 
 #define DISK_MAX_PARTS			256
-#define DISK_NAME_LEN			24
+#define DISK_NAME_LEN			32
 
 #include <linux/major.h>
 #include <linux/device.h>
