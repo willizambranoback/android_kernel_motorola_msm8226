@@ -92,7 +92,7 @@ static struct devfreq_simple_ondemand_data adreno_ondemand_data = {
 
 static struct devfreq_msm_adreno_tz_data adreno_tz_data = {
 	.bus = {
-		.max = 533,
+		.max = 450,
 	},
 	.device_id = KGSL_DEVICE_3D0,
 };
@@ -2147,8 +2147,10 @@ static int adreno_stop(struct kgsl_device *device)
 {
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
 
-	if (adreno_dev->drawctxt_active)
-		kgsl_context_put(&adreno_dev->drawctxt_active->base);
+	if (!test_bit(ADRENO_DEVICE_STARTED, &adreno_dev->priv))
+		return 0;
+
+	kgsl_pwrctrl_enable(device);
 
 	adreno_dev->drawctxt_active = NULL;
 

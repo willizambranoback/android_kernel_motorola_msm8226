@@ -1890,12 +1890,12 @@ config MSM_CPU_FREQ_SET_MIN_MAX
 config MSM_CPU_FREQ_MAX
 	int "Max CPU Frequency"
 	depends on MSM_CPU_FREQ_SET_MIN_MAX
-	default 1190400
+	default 384000
 
 config MSM_CPU_FREQ_MIN
 	int "Min CPU Frequency"
 	depends on MSM_CPU_FREQ_SET_MIN_MAX
-	default 300000
+	default 245760
 
 endif # CPU_FREQ_MSM
 
@@ -3078,13 +3078,26 @@ config WALL_CLK_SYSFS
 	 Support the wallclk directory in sysfs filesystem to enable the
 	 wall clock simulation and read the current SFN.
 
-config BRICKED_HOTPLUG
-	bool "Enable kernel based mpdecision"
-	depends on MSM_RUN_QUEUE_STATS
+config ALESSA_PLUG
+	bool "Enable plugging down/up of cores using powersuspend"
+	help
+	  This driver uses powersuspend to take down the cpu cores
+	  on a dual core device.
+	  Later this maybe be a reemplace of hotplug.
+
+config FORCE_FAST_CHARGE
+	bool "Force AC charge mode at will"
 	default y
 	help
-	  This enables kernel based multi core control.
-	  (up/down hotplug based on load)
+		A simple sysfs interface to force adapters that
+		are detected as USB to charge as AC.
+
+config MSM_HOTPLUG
+	bool "MSM hotplug driver"
+	depends on HOTPLUG_CPU
+	help
+	  The MSM hotplug driver controls on-/offlining of additional cores based
+	  on current cpu load.
 
 config KRAIT_REGULATOR
 	bool "Support Kraits powered via ganged regulators in the pmic"
@@ -3093,22 +3106,6 @@ config KRAIT_REGULATOR
 	 line from the PMIC. This supply line is powered by multiple
 	 regulators running in ganged mode inside the PMIC. Enable
 	 this option to support such configurations.
-
-config MSM_HOTPLUG
-	bool "MSM hotplug driver"
-	depends on HOTPLUG_CPU
-	default y
-	help
-	  The MSM hotplug driver controls on-/offlining of additional cores based
-	  on current cpu load.
-
-config ASMP
-	bool "Multi-core automatic hotplug support"
-	depends on SMP
-	default y
-	help
-	  Automatically hotplugs the multiple cpu cores on and off
-	  based on cpu load and suspend state
 
 config HAS_MACH_MEMUTILS
 	default n
@@ -3193,12 +3190,5 @@ config PM_DEBUG_WAKEUP
 	depends on PM_DEBUG
     default n
     bool "Report wakeup source in a uevent"
-
-config FORCE_FAST_CHARGE
-	bool "Force AC charge mode at will"
-	default y
-	help
-	  A simple sysfs interface to force adapters that
-	  are detected as USB to charge as AC.
 
 endif

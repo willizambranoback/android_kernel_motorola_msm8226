@@ -235,8 +235,8 @@ static int kgsl_pwrctrl_thermal_pwrlevel_store(struct device *dev,
 
 	kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
 
-	if (level > pwr->num_pwrlevels - 2)
-		level = pwr->num_pwrlevels - 2;
+	if (level > pwr->num_pwrlevels - 1)
+		level = pwr->num_pwrlevels - 1;
 
 	pwr->thermal_pwrlevel = level;
 
@@ -338,8 +338,8 @@ static int kgsl_pwrctrl_min_pwrlevel_store(struct device *dev,
 		return ret;
 
 	kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
-	if (level > pwr->num_pwrlevels - 2)
-		level = pwr->num_pwrlevels - 2;
+	if (level > pwr->num_pwrlevels - 1)
+		level = pwr->num_pwrlevels - 1;
 
 	/* You can't set a minimum power level lower than the maximum */
 	if (level < pwr->max_pwrlevel)
@@ -483,12 +483,19 @@ static int kgsl_pwrctrl_gpuclk_show(struct device *dev,
 				    struct device_attribute *attr,
 				    char *buf)
 {
+	unsigned long freq;
 	struct kgsl_device *device = kgsl_device_from_dev(dev);
 	struct kgsl_pwrctrl *pwr;
 	if (device == NULL)
 		return 0;
 	pwr = &device->pwrctrl;
-	return snprintf(buf, PAGE_SIZE, "%ld\n", kgsl_pwrctrl_active_freq(pwr));
+	
+	if (device->state == KGSL_STATE_SLUMBER)
+		freq = pwr->pwrlevels[pwr->num_pwrlevels - 1].gpu_freq;
+	else
+		freq = kgsl_pwrctrl_active_freq(pwr);
+
+	return snprintf(buf, PAGE_SIZE, "%lu\n", freq);
 }
 
 static int kgsl_pwrctrl_idle_timer_store(struct device *dev,
@@ -1082,7 +1089,7 @@ int kgsl_pwrctrl_init(struct kgsl_device *device)
 	pwr->thermal_pwrlevel = 0;
 
 	pwr->active_pwrlevel = pdata->init_level;
-	pwr->default_pwrlevel = pdata->init_level;
+	pwr->default_pwrlevel = pwr->min_pwrlevel;
 	pwr->init_pwrlevel = pdata->init_level;
 	for (i = 0; i < pdata->num_levels; i++) {
 		pwr->pwrlevels[i].gpu_freq =

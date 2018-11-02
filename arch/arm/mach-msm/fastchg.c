@@ -43,7 +43,7 @@
 #include <linux/sysfs.h>
 #include <linux/fastchg.h>
 
-int force_fast_charge = 1;
+int force_fast_charge;
 int USB_peripheral_detected;
 int USB_porttype_detected;
 
@@ -178,3 +178,4 @@ void force_fast_charge_exit(void)
 
 module_init(force_fast_charge_init);
 module_exit(force_fast_charge_exit);
+
