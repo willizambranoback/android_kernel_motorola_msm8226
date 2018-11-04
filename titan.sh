@@ -31,7 +31,7 @@ export LOCALVERSION=$QS_VERSION-$QS_DATE
 
 make titan_defconfig
 echo -e "$blue*****************************************************"
-echo "           Building Metis_Kernel         "
+echo "           Building Cerberus_Kernel         "
 echo -e "*****************************************************$nocol"
 
 make -o3 -j2 CONFIG_DEBUG_SECTION_MISMATCH=y CONFIG_NO_ERROR_ON_MISMATCH=y

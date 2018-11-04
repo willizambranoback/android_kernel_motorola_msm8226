@@ -27,11 +27,11 @@ export CROSS_COMPILE=$QS_TOOLCHAIN
 export ARCH=arm
 export KBUILD_BUILD_USER="WilliamZambrano"
 export KBUILD_BUILD_HOST="LinuxLite"
-export LOCALVERSION=-Cerberus_Kernel-$QS_VERSION-$QS_DATE
+export LOCALVERSION=$QS_VERSION-$QS_DATE
 
 make peregrine_defconfig
 echo -e "$blue*****************************************************"
-echo "           Building Metis_Kernel         "
+echo "           Building Cerberus_Kernel         "
 echo -e "*****************************************************$nocol"
 
 make -o3 -j2 CONFIG_DEBUG_SECTION_MISMATCH=y CONFIG_NO_ERROR_ON_MISMATCH=y

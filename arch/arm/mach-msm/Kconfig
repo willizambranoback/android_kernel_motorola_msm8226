@@ -1890,12 +1890,12 @@ config MSM_CPU_FREQ_SET_MIN_MAX
 config MSM_CPU_FREQ_MAX
 	int "Max CPU Frequency"
 	depends on MSM_CPU_FREQ_SET_MIN_MAX
-	default 384000
+	default 1190400
 
 config MSM_CPU_FREQ_MIN
 	int "Min CPU Frequency"
 	depends on MSM_CPU_FREQ_SET_MIN_MAX
-	default 245760
+	default 300000
 
 endif # CPU_FREQ_MSM
 
@@ -3098,6 +3098,13 @@ config MSM_HOTPLUG
 	help
 	  The MSM hotplug driver controls on-/offlining of additional cores based
 	  on current cpu load.
+
+config BRICKED_HOTPLUG
+	bool "Enable kernel based mpdecision"
+	depends on MSM_RUN_QUEUE_STATS
+	help
+	  This enables kernel based multi core control.
+	  (up/down hotplug based on load)
 
 config KRAIT_REGULATOR
 	bool "Support Kraits powered via ganged regulators in the pmic"
