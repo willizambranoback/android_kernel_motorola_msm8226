@@ -1,0 +1,4 @@
+config INTELLI_PLUG
+        bool "Enable intelli-plug cpu hotplug driver"
+        help
+		Generic Intelli-plug cpu hotplug driver for ARM SOCs

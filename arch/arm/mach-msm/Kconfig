@@ -3078,13 +3078,6 @@ config WALL_CLK_SYSFS
 	 Support the wallclk directory in sysfs filesystem to enable the
 	 wall clock simulation and read the current SFN.
 
-config ALESSA_PLUG
-	bool "Enable plugging down/up of cores using powersuspend"
-	help
-	  This driver uses powersuspend to take down the cpu cores
-	  on a dual core device.
-	  Later this maybe be a reemplace of hotplug.
-
 config FORCE_FAST_CHARGE
 	bool "Force AC charge mode at will"
 	default y
@@ -3098,13 +3091,6 @@ config MSM_HOTPLUG
 	help
 	  The MSM hotplug driver controls on-/offlining of additional cores based
 	  on current cpu load.
-
-config BRICKED_HOTPLUG
-	bool "Enable kernel based mpdecision"
-	depends on MSM_RUN_QUEUE_STATS
-	help
-	  This enables kernel based multi core control.
-	  (up/down hotplug based on load)
 
 config KRAIT_REGULATOR
 	bool "Support Kraits powered via ganged regulators in the pmic"
