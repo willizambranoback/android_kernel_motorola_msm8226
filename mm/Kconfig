@@ -401,6 +401,7 @@ config USE_USER_ACCESSIBLE_TIMERS
 	  architecture-specific code that will need to be enabled
 	  separately.
 
+<<<<<<< HEAD
 config ZPOOL
 	tristate "Common API for compressed memory storage"
 	default n
@@ -442,3 +443,5 @@ config ZSMALLOC_STAT
 	  statistics about whats happening in zsmalloc and exports that
 	  information to userspace via debugfs.
 	  If unsure, say N.
+=======
+>>>>>>> parent of 83d301c... zsmalloc: move it under mm
