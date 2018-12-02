@@ -29,7 +29,7 @@
 #include <linux/tick.h>
 
 #define MSM_HOTPLUG			"msm_hotplug"
-#define HOTPLUG_ENABLED			0
+#define HOTPLUG_ENABLED			1
 #define DEFAULT_UPDATE_RATE		HZ / 10
 #define START_DELAY			HZ * 20
 #define MIN_INPUT_INTERVAL		150 * 1000L
@@ -42,7 +42,7 @@
 #define DEFAULT_FAST_LANE_LOAD		99
 #define DEFAULT_MAX_CPUS_ONLINE_SUSP	1
 
-static unsigned int debug = 0;
+static unsigned int debug = 1;
 module_param_named(debug_mask, debug, uint, 0644);
 
 #define dprintk(msg...)		\
@@ -1242,3 +1242,4 @@ module_exit(msm_hotplug_exit);
 MODULE_AUTHOR("Pranav Vashi <neobuddy89@gmail.com>");
 MODULE_DESCRIPTION("MSM Hotplug Driver");
 MODULE_LICENSE("GPLv2");
+

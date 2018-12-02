@@ -11,10 +11,10 @@ nocol='\033[0m'
 
 # Init Fields
 QS_V_MAJOR=1
-QS_V_MINOR=1
+QS_V_MINOR=2
 QS_VERSION=v$QS_V_MAJOR.$QS_V_MINOR
 QS_DATE=$(date +%Y%m%d)
-QS_TOOLCHAIN=/home/joker/linaro4.9/bin/arm-cortex_a7-linux-gnueabihf-
+QS_TOOLCHAIN=/home/joker/q6.4/bin/arm-eabi-
 
 echo -e "$yellow*****************************************************"
 echo "                Cleaning source         "

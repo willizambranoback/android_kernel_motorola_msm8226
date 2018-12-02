@@ -17,6 +17,10 @@
 	compatible = "qcom,msm8226";
 	interrupt-parent = <&intc>;
 
+	chosen {
+		bootargs = "boot_cpus=0,1,2,3";
+	};
+
 	aliases {
 		spi0 = &spi_0;
 		sdhc1 = &sdhc_1; /* SDC1 eMMC slot */
