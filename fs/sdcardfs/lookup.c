@@ -227,7 +227,7 @@ int sdcardfs_interpose(struct dentry *dentry, struct super_block *sb,
  * Fills in lower_parent_path with <dentry,mnt> on success.
  */
 static struct dentry *__sdcardfs_lookup(struct dentry *dentry,
-		struct nameidata *nd, struct path *lower_parent_path, userid_t id)
+		unsigned int flags, struct path *lower_parent_path, userid_t id)
 {
 	int err = 0;
 	struct vfsmount *lower_dir_mnt;
@@ -356,10 +356,7 @@ static struct dentry *__sdcardfs_lookup(struct dentry *dentry,
 	 * the VFS will continue the process of making this negative dentry
 	 * into a positive one.
 	 */
-	if (nd) {
-		if (nd->flags & (LOOKUP_CREATE|LOOKUP_RENAME_TARGET))
-			err = 0;
-	} else
+	if (flags & (LOOKUP_CREATE|LOOKUP_RENAME_TARGET))
 		err = 0;
 
 out:
@@ -380,7 +377,7 @@ out:
  * @nd : nameidata of parent inode
  */
 struct dentry *sdcardfs_lookup(struct inode *dir, struct dentry *dentry,
-			     struct nameidata *nd)
+			     unsigned int flags)
 {
 	struct dentry *ret = NULL, *parent;
 	struct path lower_parent_path;
@@ -395,7 +392,12 @@ struct dentry *sdcardfs_lookup(struct inode *dir, struct dentry *dentry,
 	}
 
 	/* save current_cred and override it */
-	OVERRIDE_CRED_PTR(SDCARDFS_SB(dir->i_sb), saved_cred, SDCARDFS_I(dir));
+	saved_cred = override_fsids(SDCARDFS_SB(dir->i_sb),
+						SDCARDFS_I(dir)->data);
+	if (!saved_cred) {
+		ret = ERR_PTR(-ENOMEM);
+		goto out_err;
+	}
 
 	sdcardfs_get_lower_path(parent, &lower_parent_path);
 
@@ -406,7 +408,7 @@ struct dentry *sdcardfs_lookup(struct inode *dir, struct dentry *dentry,
 		goto out;
 	}
 
-	ret = __sdcardfs_lookup(dentry, nd, &lower_parent_path,
+	ret = __sdcardfs_lookup(dentry, flags, &lower_parent_path,
 				SDCARDFS_I(dir)->data->userid);
 	if (IS_ERR(ret))
 		goto out;
@@ -426,7 +428,7 @@ struct dentry *sdcardfs_lookup(struct inode *dir, struct dentry *dentry,
 
 out:
 	sdcardfs_put_lower_path(parent, &lower_parent_path);
-	REVERT_CRED(saved_cred);
+	revert_fsids(saved_cred);
 out_err:
 	dput(parent);
 	return ret;

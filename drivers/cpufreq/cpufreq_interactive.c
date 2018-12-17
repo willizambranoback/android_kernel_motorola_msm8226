@@ -1209,7 +1209,10 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 
 	switch (event) {
 	case CPUFREQ_GOV_START:
+<<<<<<< HEAD
 
+=======
+>>>>>>> ac5433fa1239a73ccc4ff32f35d8259581b36743
 		mutex_lock(&gov_lock);
 
 		freq_table =

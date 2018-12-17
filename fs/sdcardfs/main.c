@@ -218,10 +218,7 @@ static struct dentry *sdcardfs_d_alloc_root(struct super_block *sb)
 	struct dentry *ret = NULL;
 
 	if (sb) {
-		static const struct qstr name = {
-			.name = "/",
-			.len = 1
-		};
+		static const struct qstr name = QSTR_INIT("/", 1);
 
 		ret = d_alloc(NULL, &name);
 		if (ret) {
@@ -294,13 +291,6 @@ static int sdcardfs_read_super(struct vfsmount *mnt, struct super_block *sb,
 	lower_sb = lower_path.dentry->d_sb;
 	atomic_inc(&lower_sb->s_active);
 	sdcardfs_set_lower_super(sb, lower_sb);
-
-	sb->s_stack_depth = lower_sb->s_stack_depth + 1;
-	if (sb->s_stack_depth > FILESYSTEM_MAX_STACK_DEPTH) {
-		pr_err("sdcardfs: maximum fs stacking depth exceeded\n");
-		err = -EINVAL;
-		goto out_sput;
-	}
 
 	/* inherit maxbytes from lower file system */
 	sb->s_maxbytes = lower_sb->s_maxbytes;

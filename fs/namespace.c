@@ -1376,24 +1376,6 @@ void drop_collected_mounts(struct vfsmount *mnt)
 	release_mounts(&umount_list);
 }
 
-struct vfsmount *clone_private_mount(struct path *path)
-{
-	struct mount *old_mnt = real_mount(path->mnt);
-	struct mount *new_mnt;
-
-	if (IS_MNT_UNBINDABLE(old_mnt))
-		return ERR_PTR(-EINVAL);
-
-	down_read(&namespace_sem);
-	new_mnt = clone_mnt(old_mnt, path->dentry, CL_PRIVATE);
-	up_read(&namespace_sem);
-	if (!new_mnt)
-		return ERR_PTR(-ENOMEM);
-
-	return &new_mnt->mnt;
-}
-EXPORT_SYMBOL_GPL(clone_private_mount);
-
 int iterate_mounts(int (*f)(struct vfsmount *, void *), void *arg,
 		   struct vfsmount *root)
 {
@@ -2198,10 +2180,8 @@ int copy_mount_string(const void __user *data, char **where)
 	}
 
 	tmp = strndup_user(data, PAGE_SIZE);
-	if (IS_ERR(tmp)) {
-		*where = NULL;
+	if (IS_ERR(tmp))
 		return PTR_ERR(tmp);
-	}
 
 	*where = tmp;
 	return 0;
@@ -2467,7 +2447,7 @@ SYSCALL_DEFINE5(mount, char __user *, dev_name, char __user *, dir_name,
 {
 	int ret;
 	char *kernel_type;
-	char *kernel_dir;
+	struct filename *kernel_dir;
 	char *kernel_dev;
 	unsigned long data_page;
 
@@ -2489,7 +2469,7 @@ SYSCALL_DEFINE5(mount, char __user *, dev_name, char __user *, dir_name,
 	if (ret < 0)
 		goto out_data;
 
-	ret = do_mount(kernel_dev, kernel_dir, kernel_type, flags,
+	ret = do_mount(kernel_dev, kernel_dir->name, kernel_type, flags,
 		(void *) data_page);
 
 	free_page(data_page);
