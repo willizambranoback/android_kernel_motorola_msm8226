@@ -71,8 +71,8 @@ static struct workqueue_struct *workqueue;
  * performance cost, and for other reasons may not always be desired.
  * So we allow it it to be disabled.
  */
-bool use_spi_crc = 0;
-module_param(use_spi_crc, bool, 0644);
+bool use_spi_crc = 1;
+module_param(use_spi_crc, bool, 0);
 
 /*
  * We normally treat cards as removed during suspend if they are not
@@ -2514,7 +2514,8 @@ EXPORT_SYMBOL(mmc_can_sanitize);
 
 int mmc_can_secure_erase_trim(struct mmc_card *card)
 {
-	if (card->ext_csd.sec_feature_support & EXT_CSD_SEC_ER_EN)
+	if ((card->ext_csd.sec_feature_support & EXT_CSD_SEC_ER_EN) &&
+	    !(card->quirks & MMC_QUIRK_SEC_ERASE_TRIM_BROKEN))
 		return 1;
 	return 0;
 }

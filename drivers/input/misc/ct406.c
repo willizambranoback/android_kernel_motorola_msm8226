@@ -37,10 +37,6 @@
 #include <linux/uaccess.h>
 #include <linux/wakelock.h>
 #include <linux/workqueue.h>
-#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
-#include <linux/input/sweep2wake.h>
-#include <linux/input/doubletap2wake.h>
-#endif
 
 #define CT406_I2C_RETRIES	2
 #define CT406_I2C_RETRY_DELAY	10
@@ -185,17 +181,10 @@ struct ct406_data {
 	u8 prox_offset;
 	u16 pdata_max;
 	u8 ink_type;
+	int prox_last_value;
 };
 
 static struct ct406_data *ct406_misc_data;
-
-#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
-bool prox_covered = false;
-static bool forced;
-static bool screen_suspended;
-extern void touch_suspend(void);
-extern void touch_resume(void);
-#endif
 
 static struct ct406_reg {
 	const char *name;
@@ -559,14 +548,7 @@ static void ct406_prox_mode_uncovered(struct ct406_data *ct)
 		pilt = 0;
 	if (piht > ct->pdata_max)
 		piht = ct->pdata_max;
-#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
-if (s2w_switch == 1 || dt2w_switch > 0) {
-	prox_covered = false;
-	if (screen_suspended) {
-		touch_resume();
-		}
-	}	
-#endif
+
 	ct->prox_mode = CT406_PROX_MODE_UNCOVERED;
 	ct->prox_low_threshold = pilt;
 	ct->prox_high_threshold = piht;
@@ -582,18 +564,11 @@ static void ct406_prox_mode_covered(struct ct406_data *ct)
 
 	if (pilt > ct->pdata_max)
 		pilt = ct->pdata_max;
+
 	ct->prox_mode = CT406_PROX_MODE_COVERED;
 	ct->prox_low_threshold = pilt;
 	ct->prox_high_threshold = piht;
 	ct406_write_prox_thresholds(ct);
-#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
-	if (s2w_switch == 1 || dt2w_switch > 0) {
-		prox_covered = true;
-		if (screen_suspended) {
-		touch_suspend();
-		}
-	}
-#endif
 	pr_info("%s: Prox mode covered\n", __func__);
 }
 
@@ -907,6 +882,22 @@ static int ct406_disable_prox(struct ct406_data *ct)
 	return 0;
 }
 
+static void ct406_report_prox_event(struct ct406_data *ct, int value)
+{
+	ktime_t timestamp = ktime_get_boottime();
+
+	if (ct->prox_last_value == value)
+		return;
+
+	ct->prox_last_value = value;
+
+	input_event(ct->dev, EV_SYN, SYN_TIME_SEC,
+		ktime_to_timespec(timestamp).tv_sec);
+	input_event(ct->dev, EV_SYN, SYN_TIME_NSEC,
+		ktime_to_timespec(timestamp).tv_nsec);
+	input_event(ct->dev, EV_MSC, MSC_RAW, value);
+	input_sync(ct->dev);
+}
 
 static void ct406_report_prox(struct ct406_data *ct)
 {
@@ -947,31 +938,23 @@ static void ct406_report_prox(struct ct406_data *ct)
 			pr_info("%s: Prox mode recalibrate\n", __func__);
 			ct406_enable_prox(ct);
 		}
-		if (pdata > ct->prox_high_threshold) {
-			input_event(ct->dev, EV_MSC, MSC_RAW,
-				CT406_PROXIMITY_NEAR);
-			input_sync(ct->dev);
+		if (ct->prox_high_threshold && pdata > ct->prox_high_threshold) {
+			ct406_report_prox_event(ct, CT406_PROXIMITY_NEAR);
 			ct406_prox_mode_covered(ct);
 		}
 		break;
 	case CT406_PROX_MODE_COVERED:
 		if (pdata < ct->prox_low_threshold) {
-			input_event(ct->dev, EV_MSC, MSC_RAW,
-				CT406_PROXIMITY_FAR);
-			input_sync(ct->dev);
+			ct406_report_prox_event(ct, CT406_PROXIMITY_FAR);
 			ct406_prox_mode_uncovered(ct);
 		}
 		break;
 	case CT406_PROX_MODE_STARTUP:
 		if (pdata < (ct->prox_noise_floor + ct->prox_covered_offset)) {
-			input_event(ct->dev, EV_MSC, MSC_RAW,
-				CT406_PROXIMITY_FAR);
-			input_sync(ct->dev);
+			ct406_report_prox_event(ct, CT406_PROXIMITY_FAR);
 			ct406_prox_mode_uncovered(ct);
 		} else {
-			input_event(ct->dev, EV_MSC, MSC_RAW,
-				CT406_PROXIMITY_NEAR);
-			input_sync(ct->dev);
+			ct406_report_prox_event(ct, CT406_PROXIMITY_NEAR);
 			ct406_prox_mode_covered(ct);
 		}
 		break;
@@ -981,6 +964,18 @@ static void ct406_report_prox(struct ct406_data *ct)
 	}
 
 	ct406_clear_prox_flag(ct);
+}
+
+static void ct406_report_als_event(struct ct406_data *ct, int value)
+{
+	ktime_t timestamp = ktime_get_boottime();
+
+	input_event(ct->dev, EV_SYN, SYN_TIME_SEC,
+		ktime_to_timespec(timestamp).tv_sec);
+	input_event(ct->dev, EV_SYN, SYN_TIME_NSEC,
+		ktime_to_timespec(timestamp).tv_nsec);
+	input_event(ct->dev, EV_LED, LED_MISC, value);
+	input_sync(ct->dev);
 }
 
 static void ct406_report_als(struct ct406_data *ct)
@@ -1087,8 +1082,7 @@ static void ct406_report_als(struct ct406_data *ct)
 	/* input.c filters consecutive LED_MISC values <=1. */
 	lux1 = (lux1 >= 2) ? lux1 : 2;
 
-	input_event(ct->dev, EV_LED, LED_MISC, lux1);
-	input_sync(ct->dev);
+	ct406_report_als_event(ct, lux1);
 
 	if (ct->als_first_report == 0) {
 		/* write ALS interrupt persistence */
@@ -1206,6 +1200,7 @@ static int ct406_set_prox_enable_param(const char *char_value,
 
 	if (ct406_misc_data->prox_requested) {
 		ct406_misc_data->prox_starting = 1;
+		ct406_misc_data->prox_last_value = -1;
 		queue_work(ct406_misc_data->workqueue,
 			&ct406_misc_data->work_prox_start);
 	} else {
@@ -1452,31 +1447,6 @@ static void ct406_work_prox_start(struct work_struct *work)
 	mutex_unlock(&ct->mutex);
 }
 
-#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
-void ct_enable(void)
-{
-	screen_suspended = true;
-	if (!ct406_misc_data->prox_enabled)
-		{
-			forced = true;
-			ct406_enable_prox(ct406_misc_data);
-		}
-}
-EXPORT_SYMBOL(ct_enable);
-
-void ct_disable(void)
-{
-	screen_suspended = false;
-	if (forced)
-		{
-			ct406_disable_prox(ct406_misc_data);
-			forced = false;
-		}
-}
-EXPORT_SYMBOL(ct_disable);
-
-#else
-
 static int ct406_suspend(struct ct406_data *ct)
 {
 	if (ct406_debug & CT406_DBG_SUSPEND_RESUME)
@@ -1531,7 +1501,6 @@ static int ct406_pm_event(struct notifier_block *this,
 
 	return NOTIFY_DONE;
 }
-#endif
 
 #ifdef CONFIG_OF
 static struct ct406_platform_data *
@@ -1723,16 +1692,13 @@ static int ct406_probe(struct i2c_client *client,
 		pr_err("%s:device init failed: %d\n", __func__, error);
 		goto error_revision_read_failed;
 	}
-#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
-	if (s2w_switch == 1 || dt2w_switch > 0)
-		ct406_enable_prox(ct);
-#else
+
 	ct->pm_notifier.notifier_call = ct406_pm_event;
 	error = register_pm_notifier(&ct->pm_notifier);
 	if (error < 0) {
 		pr_err("%s:Register_pm_notifier failed: %d\n", __func__, error);
 	}
-#endif
+
 	return 0;
 
 error_revision_read_failed:

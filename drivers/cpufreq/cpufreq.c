@@ -15,17 +15,7 @@
  *
  */
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-
->>>>>>> RenanQueiroz-lineage-16.0
 #include <asm/cputime.h>
-=======
-#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-
->>>>>>> ac5433fa1239a73ccc4ff32f35d8259581b36743
 #include <linux/kernel.h>
 #include <linux/kernel_stat.h>
 #include <linux/module.h>

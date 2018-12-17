@@ -675,49 +675,20 @@ static inline void clear_inode(struct inode *inode)
 	end_writeback(inode);
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-static int sdfat_revalidate(struct dentry *dentry, struct nameidata *nd)
-{
-	if (nd && nd->flags & LOOKUP_RCU)
-=======
 static int sdfat_revalidate(struct dentry *dentry, unsigned int flags)
 {
 	if (flags & LOOKUP_RCU)
->>>>>>> ac5433fa1239a73ccc4ff32f35d8259581b36743
-=======
-static int sdfat_revalidate(struct dentry *dentry, unsigned int flags)
-{
-	if (flags & LOOKUP_RCU)
->>>>>>> RenanQueiroz-lineage-16.0
 		return -ECHILD;
 
 	return __sdfat_revalidate(dentry);
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-static int sdfat_revalidate_ci(struct dentry *dentry, struct nameidata *nd)
-=======
-static int sdfat_revalidate_ci(struct dentry *dentry, unsigned int flags)
->>>>>>> RenanQueiroz-lineage-16.0
-{
-	if (flags & LOOKUP_RCU)
-		return -ECHILD;
-
-<<<<<<< HEAD
-	return __sdfat_revalidate_ci(dentry, nd ? nd->flags : 0);
-=======
 static int sdfat_revalidate_ci(struct dentry *dentry, unsigned int flags)
 {
 	if (flags & LOOKUP_RCU)
 		return -ECHILD;
 
 	return __sdfat_revalidate_ci(dentry, flags);
->>>>>>> ac5433fa1239a73ccc4ff32f35d8259581b36743
-=======
-	return __sdfat_revalidate_ci(dentry, flags);
->>>>>>> RenanQueiroz-lineage-16.0
 
 }
 
@@ -753,15 +724,7 @@ static struct dentry *sdfat_lookup(struct inode *dir, struct dentry *dentry,
 }
 #else /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 6, 0) */
 static struct dentry *sdfat_lookup(struct inode *dir, struct dentry *dentry,
-<<<<<<< HEAD
-<<<<<<< HEAD
-						   struct nameidata *nd)
-=======
 						   unsigned int flags)
->>>>>>> ac5433fa1239a73ccc4ff32f35d8259581b36743
-=======
-						   unsigned int flags)
->>>>>>> RenanQueiroz-lineage-16.0
 {
 	return __sdfat_lookup(dir, dentry);
 }
@@ -1079,15 +1042,7 @@ static int sdfat_create(struct inode *dir, struct dentry *dentry, umode_t mode,
 }
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
 static int sdfat_create(struct inode *dir, struct dentry *dentry, umode_t mode,
-<<<<<<< HEAD
-<<<<<<< HEAD
-			struct nameidata *nd)
-=======
 			bool excl)
->>>>>>> ac5433fa1239a73ccc4ff32f35d8259581b36743
-=======
-			bool excl)
->>>>>>> RenanQueiroz-lineage-16.0
 {
 	return __sdfat_create(dir, dentry);
 }
@@ -4504,15 +4459,12 @@ enum {
 	Opt_discard,
 	Opt_fs,
 	Opt_adj_req,
-<<<<<<< HEAD
-=======
 #ifdef CONFIG_SDFAT_USE_FOR_VFAT
 	Opt_shortname_lower,
 	Opt_shortname_win95,
 	Opt_shortname_winnt,
 	Opt_shortname_mixed,
 #endif /* CONFIG_SDFAT_USE_FOR_VFAT */
->>>>>>> ac5433fa1239a73ccc4ff32f35d8259581b36743
 };
 
 static const match_table_t sdfat_tokens = {
@@ -4541,15 +4493,12 @@ static const match_table_t sdfat_tokens = {
 	{Opt_discard, "discard"},
 	{Opt_fs, "fs=%s"},
 	{Opt_adj_req, "adj_req"},
-<<<<<<< HEAD
-=======
 #ifdef CONFIG_SDFAT_USE_FOR_VFAT
 	{Opt_shortname_lower, "shortname=lower"},
 	{Opt_shortname_win95, "shortname=win95"},
 	{Opt_shortname_winnt, "shortname=winnt"},
 	{Opt_shortname_mixed, "shortname=mixed"},
 #endif /* CONFIG_SDFAT_USE_FOR_VFAT */
->>>>>>> ac5433fa1239a73ccc4ff32f35d8259581b36743
 	{Opt_err, NULL}
 };
 
@@ -4716,8 +4665,6 @@ static int parse_options(struct super_block *sb, char *options, int silent,
 			IMSG("adjust request config is not enabled. ignore\n");
 #endif
 			break;
-<<<<<<< HEAD
-=======
 #ifdef CONFIG_SDFAT_USE_FOR_VFAT
 		case Opt_shortname_lower:
 		case Opt_shortname_win95:
@@ -4726,7 +4673,6 @@ static int parse_options(struct super_block *sb, char *options, int silent,
 		case Opt_shortname_winnt:
 			break;
 #endif /* CONFIG_SDFAT_USE_FOR_VFAT */
->>>>>>> ac5433fa1239a73ccc4ff32f35d8259581b36743
 		default:
 			if (!silent) {
 				sdfat_msg(sb, KERN_ERR,
@@ -5051,8 +4997,6 @@ static struct file_system_type sdfat_fs_type = {
 #endif /* CONFIG_SDFAT_DBG_IOCTL */
 	.fs_flags    = FS_REQUIRES_DEV,
 };
-<<<<<<< HEAD
-=======
 MODULE_ALIAS_FS("sdfat");
 
 #ifdef CONFIG_SDFAT_USE_FOR_EXFAT
@@ -5084,7 +5028,6 @@ static struct file_system_type vfat_fs_type = {
 };
 MODULE_ALIAS_FS("vfat");
 #endif /* CONFIG_SDFAT_USE_FOR_VFAT */
->>>>>>> ac5433fa1239a73ccc4ff32f35d8259581b36743
 
 static int __init init_sdfat_fs(void)
 {
@@ -5124,8 +5067,6 @@ static int __init init_sdfat_fs(void)
 		goto error;
 	}
 
-<<<<<<< HEAD
-=======
 #ifdef CONFIG_SDFAT_USE_FOR_EXFAT
 	err = register_filesystem(&exfat_fs_type);
 	if (err) {
@@ -5142,7 +5083,6 @@ static int __init init_sdfat_fs(void)
 	}
 #endif /* CONFIG_SDFAT_USE_FOR_VFAT */
 
->>>>>>> ac5433fa1239a73ccc4ff32f35d8259581b36743
 	return 0;
 error:
 	sdfat_statistics_uninit();
@@ -5172,16 +5112,12 @@ static void __exit exit_sdfat_fs(void)
 
 	sdfat_destroy_inodecache();
 	unregister_filesystem(&sdfat_fs_type);
-<<<<<<< HEAD
-
-=======
 #ifdef CONFIG_SDFAT_USE_FOR_EXFAT
 	unregister_filesystem(&exfat_fs_type);
 #endif /* CONFIG_SDFAT_USE_FOR_EXFAT */
 #ifdef CONFIG_SDFAT_USE_FOR_VFAT
 	unregister_filesystem(&vfat_fs_type);
 #endif /* CONFIG_SDFAT_USE_FOR_VFAT */
->>>>>>> ac5433fa1239a73ccc4ff32f35d8259581b36743
 	fsapi_shutdown();
 }
 

@@ -17,10 +17,6 @@
 	compatible = "qcom,msm8226";
 	interrupt-parent = <&intc>;
 
-	chosen {
-		bootargs = "boot_cpus=0,1,2,3";
-	};
-
 	aliases {
 		spi0 = &spi_0;
 		sdhc1 = &sdhc_1; /* SDC1 eMMC slot */
@@ -1086,6 +1082,8 @@
 		reg = <0 4>;
 		compatible = "qcom,msm-cpufreq";
 		qcom,cpufreq-table =
+			<  192000 1525 >,
+			<  249600 1525 >,
 			<  300000 1525 >,
 			<  384000 1525 >,
 			<  600000 1525 >,

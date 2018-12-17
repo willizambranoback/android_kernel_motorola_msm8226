@@ -1715,6 +1715,7 @@ static int do_remount(struct path *path, int flags, int mnt_flags,
 	int err;
 	struct super_block *sb = path->mnt->mnt_sb;
 	struct mount *mnt = real_mount(path->mnt);
+	LIST_HEAD(umounts);
 
 	if (!capable(CAP_SYS_ADMIN))
 		return -EPERM;
@@ -1734,9 +1735,12 @@ static int do_remount(struct path *path, int flags, int mnt_flags,
 		err = change_mount_flags(path->mnt, flags);
 	else {
 		err = do_remount_sb2(path->mnt, sb, flags, data, 0);
+		down_write(&namespace_sem);
 		br_write_lock(&vfsmount_lock);
 		propagate_remount(mnt);
 		br_write_unlock(&vfsmount_lock);
+		up_write(&namespace_sem);
+		release_mounts(&umounts);
 	}
 	if (!err) {
 		br_write_lock(&vfsmount_lock);
@@ -2230,10 +2234,9 @@ long do_mount(const char *dev_name, const char *dir_name,
 	if (retval)
 		goto dput_out;
 
-	/* Default to relatime unless overriden
+	/* Default to relatime unless overriden */
 	if (!(flags & MS_NOATIME))
 		mnt_flags |= MNT_RELATIME;
-	*/
 
 	/* Separate the per-mountpoint flags */
 	if (flags & MS_NOSUID)
@@ -2242,9 +2245,9 @@ long do_mount(const char *dev_name, const char *dir_name,
 		mnt_flags |= MNT_NODEV;
 	if (flags & MS_NOEXEC)
 		mnt_flags |= MNT_NOEXEC;
-	//if (flags & MS_NOATIME)
+	if (flags & MS_NOATIME)
 		mnt_flags |= MNT_NOATIME;
-	//if (flags & MS_NODIRATIME)
+	if (flags & MS_NODIRATIME)
 		mnt_flags |= MNT_NODIRATIME;
 	if (flags & MS_STRICTATIME)
 		mnt_flags &= ~(MNT_RELATIME | MNT_NOATIME);

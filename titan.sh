@@ -10,8 +10,8 @@ red='\033[0;31m'
 nocol='\033[0m'
 
 # Init Fields
-QS_V_MAJOR=1
-QS_V_MINOR=2
+QS_V_MAJOR=2
+QS_V_MINOR=0
 QS_VERSION=v$QS_V_MAJOR.$QS_V_MINOR
 QS_DATE=$(date +%Y%m%d)
 QS_TOOLCHAIN=/home/joker/q6.4/bin/arm-eabi-
@@ -25,8 +25,8 @@ make clean && make mrproper
 
 export CROSS_COMPILE=$QS_TOOLCHAIN
 export ARCH=arm
-export KBUILD_BUILD_USER="WilliamZambrano"
-export KBUILD_BUILD_HOST="LinuxLite"
+export KBUILD_BUILD_USER="willizambrano01"
+export KBUILD_BUILD_HOST="xda-developers"
 export LOCALVERSION=$QS_VERSION-$QS_DATE
 
 make titan_defconfig
