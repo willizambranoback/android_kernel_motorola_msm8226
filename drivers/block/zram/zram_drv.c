@@ -40,10 +40,14 @@
 static int zram_major;
 static struct zram *zram_devices;
 <<<<<<< HEAD
+<<<<<<< HEAD
 static const char *default_compressor = "lz4";
 =======
 static const char *default_compressor = "lzo";
 >>>>>>> ac5433fa1239a73ccc4ff32f35d8259581b36743
+=======
+static const char *default_compressor = "lzo";
+>>>>>>> RenanQueiroz-lineage-16.0
 
 /*
  * We don't need to see memory allocation errors more than once every 1

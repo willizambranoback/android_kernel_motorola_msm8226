@@ -16,6 +16,11 @@
  */
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
+>>>>>>> RenanQueiroz-lineage-16.0
 #include <asm/cputime.h>
 =======
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt

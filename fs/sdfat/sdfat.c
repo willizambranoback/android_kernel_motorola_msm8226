@@ -676,6 +676,7 @@ static inline void clear_inode(struct inode *inode)
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 static int sdfat_revalidate(struct dentry *dentry, struct nameidata *nd)
 {
 	if (nd && nd->flags & LOOKUP_RCU)
@@ -684,17 +685,27 @@ static int sdfat_revalidate(struct dentry *dentry, unsigned int flags)
 {
 	if (flags & LOOKUP_RCU)
 >>>>>>> ac5433fa1239a73ccc4ff32f35d8259581b36743
+=======
+static int sdfat_revalidate(struct dentry *dentry, unsigned int flags)
+{
+	if (flags & LOOKUP_RCU)
+>>>>>>> RenanQueiroz-lineage-16.0
 		return -ECHILD;
 
 	return __sdfat_revalidate(dentry);
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 static int sdfat_revalidate_ci(struct dentry *dentry, struct nameidata *nd)
+=======
+static int sdfat_revalidate_ci(struct dentry *dentry, unsigned int flags)
+>>>>>>> RenanQueiroz-lineage-16.0
 {
-	if (nd && nd->flags & LOOKUP_RCU)
+	if (flags & LOOKUP_RCU)
 		return -ECHILD;
 
+<<<<<<< HEAD
 	return __sdfat_revalidate_ci(dentry, nd ? nd->flags : 0);
 =======
 static int sdfat_revalidate_ci(struct dentry *dentry, unsigned int flags)
@@ -704,6 +715,9 @@ static int sdfat_revalidate_ci(struct dentry *dentry, unsigned int flags)
 
 	return __sdfat_revalidate_ci(dentry, flags);
 >>>>>>> ac5433fa1239a73ccc4ff32f35d8259581b36743
+=======
+	return __sdfat_revalidate_ci(dentry, flags);
+>>>>>>> RenanQueiroz-lineage-16.0
 
 }
 
@@ -740,10 +754,14 @@ static struct dentry *sdfat_lookup(struct inode *dir, struct dentry *dentry,
 #else /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 6, 0) */
 static struct dentry *sdfat_lookup(struct inode *dir, struct dentry *dentry,
 <<<<<<< HEAD
+<<<<<<< HEAD
 						   struct nameidata *nd)
 =======
 						   unsigned int flags)
 >>>>>>> ac5433fa1239a73ccc4ff32f35d8259581b36743
+=======
+						   unsigned int flags)
+>>>>>>> RenanQueiroz-lineage-16.0
 {
 	return __sdfat_lookup(dir, dentry);
 }
@@ -1062,10 +1080,14 @@ static int sdfat_create(struct inode *dir, struct dentry *dentry, umode_t mode,
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
 static int sdfat_create(struct inode *dir, struct dentry *dentry, umode_t mode,
 <<<<<<< HEAD
+<<<<<<< HEAD
 			struct nameidata *nd)
 =======
 			bool excl)
 >>>>>>> ac5433fa1239a73ccc4ff32f35d8259581b36743
+=======
+			bool excl)
+>>>>>>> RenanQueiroz-lineage-16.0
 {
 	return __sdfat_create(dir, dentry);
 }
